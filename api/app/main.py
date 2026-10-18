@@ -156,6 +156,11 @@ def commit_records(ref: str, table: str | None = None, offset: int = 0, limit: i
     return vcs.snapshot_records(ref, table, offset, limit)
 
 
+@app.get("/api/commits/{ref}/record/{key}")
+def commit_record(ref: str, key: str):
+    return vcs.snapshot_record(ref, key)
+
+
 @app.get("/api/branches")
 def branches():
     return vcs.branches()

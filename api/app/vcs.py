@@ -267,6 +267,21 @@ def snapshot_records(ref: str, table: str | None = None, offset: int = 0, limit:
             "records": [{"key": e["key"], **unfold(blobs[e["blob"]])} for e in page]}
 
 
+def snapshot_record(ref: str, key: str) -> dict:
+    """One record of a commit, plus which of its fields can be proven individually."""
+    with pg() as conn:
+        cid = resolve(conn, ref)
+    entry = next((e for e in manifest(cid)["entries"] if e["key"] == key), None)
+    if entry is None:
+        raise VcsError(f"{key} does not exist in commit {cid}", 404)
+    blob = store.blobs.find_one({"_id": entry["blob"]})
+    provable = [{"field": name, "numeric": isinstance(v, int) and not isinstance(v, bool) and v >= 0}
+                for name, v in blob["fields"] if name != "~rest"]
+    folded = [k for name, v in blob["fields"] if name == "~rest" for k in v]
+    return {"commit_id": cid, "key": key, "blob": entry["blob"], "record": unfold(blob),
+            "provable": provable, "folded": folded}
+
+
 # ---------------------------------------------------------------- restore / branches
 
 def snapshot_by_table(cid: str) -> dict[str, list[dict]]:

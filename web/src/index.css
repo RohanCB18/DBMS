@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { font-size: 16px; }
+body {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(52, 211, 153, 0.06), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(56, 189, 248, 0.05), transparent 60%),
+    #070b10;
+  min-height: 100vh;
+}
+::selection { background: rgba(52, 211, 153, 0.3); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #2a3848; border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+select option { background: #0f1620; }
+
+/* React Flow, dark */
+.react-flow__attribution { display: none; }
+.react-flow__controls button { background: #131c28; border-color: #2a3848; fill: #cbd5e1; }
+.react-flow__controls button:hover { background: #1c2735; }
