@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from . import config, demo, graph, proofs, vcs, zk
+from . import config, demo, graph, proofs, sqlconsole, stats, vcs, zk
 
 
 @asynccontextmanager
@@ -92,6 +92,11 @@ class MergeIn(BaseModel):
     dry_run: bool = Field(False, description="report the outcome and conflicts without writing")
 
 
+class SqlIn(BaseModel):
+    ref: str = Field(description="commit id, prefix or branch name to query 'as of'")
+    query: str = Field(min_length=1, max_length=5000)
+
+
 class ProofIn(BaseModel):
     ref: str = Field(description="commit id, prefix or branch name")
     table: str
@@ -170,6 +175,21 @@ def restore(body: RestoreIn):
 @app.post("/api/merge")
 def merge(body: MergeIn):
     return vcs.merge(body.source, body.resolutions, body.message, body.author, body.dry_run)
+
+
+@app.post("/api/sql")
+def time_travel_sql(body: SqlIn):
+    return JSONResponse(jsonable_encoder(sqlconsole.run(body.ref, body.query)))
+
+
+@app.get("/api/stats")
+def overview_stats():
+    return stats.overview()
+
+
+@app.get("/api/verify-runs")
+def verify_runs(limit: int = 20):
+    return vcs.verification_runs(limit)
 
 
 @app.post("/api/verify/{ref}")

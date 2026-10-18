@@ -509,3 +509,12 @@ def anchors() -> list[dict]:
     for r in rows:
         r["commit_id"] = r["commit_id"].strip()
     return rows
+
+
+def verification_runs(limit: int = 20) -> list[dict]:
+    with pg() as conn:
+        rows = conn.execute("""SELECT run_id, commit_id, ok, details, ran_at FROM vcs.verification_runs
+                               ORDER BY run_id DESC LIMIT %s""", (limit,)).fetchall()
+    for r in rows:
+        r["commit_id"] = r["commit_id"].strip()
+    return rows

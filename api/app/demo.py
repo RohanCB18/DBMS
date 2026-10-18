@@ -7,7 +7,7 @@ first business day. The auditor later asks for proof of that, without seeing any
 import random
 from datetime import datetime, timedelta, timezone
 
-from . import graph, vcs
+from . import graph, sqlconsole, vcs
 from .canonical import SQL_TABLES
 from .db import live_db, pg, store
 
@@ -88,6 +88,7 @@ def _seed_rows(rng: random.Random):
 def reset() -> dict:
     """Wipe all three databases, load the seed bank, and make the first commit."""
     with pg() as conn:
+        sqlconsole.drop_all(conn)
         conn.execute("""TRUNCATE bank.transactions, bank.accounts, bank.customers, bank.bank_branches,
                         vcs.verification_runs, vcs.anchors, vcs.change_log, vcs.head,
                         vcs.commit_parents, vcs.branches, vcs.commits CASCADE""")
