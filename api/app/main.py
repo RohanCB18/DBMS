@@ -1,30 +1,63 @@
 """ZK-TemporalDB HTTP API.  Interactive docs: http://localhost:8100/docs"""
+import secrets
+from contextlib import asynccontextmanager
 from typing import Literal
 
-from fastapi import FastAPI, Request
+import psycopg
+from fastapi import Depends, FastAPI, Header, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from . import demo, graph, proofs, vcs, zk
+from . import config, demo, graph, proofs, vcs, zk
 
-app = FastAPI(title="ZK-TemporalDB", version="0.6.0",
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    try:
+        graph.ensure_schema()
+    except Exception:  # noqa: BLE001 — neo4j may still be booting; constraints are re-ensured on reset
+        pass
+    yield
+
+
+app = FastAPI(title="ZK-TemporalDB", version="0.9.0", lifespan=lifespan,
               description="Git for databases, with cryptographic proof.")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
 @app.exception_handler(vcs.VcsError)
 def _vcs_error(_req: Request, e: vcs.VcsError):
-    return JSONResponse(status_code=e.status, content={"error": str(e)})
+    return JSONResponse(status_code=e.status, content=jsonable_encoder({"error": str(e), **e.extra}))
 
 
-@app.on_event("startup")
-def _startup():
-    try:
-        graph.ensure_schema()
-    except Exception:  # noqa: BLE001 — neo4j may still be booting; constraints are re-ensured on reset
-        pass
+def _pg_message(e: psycopg.Error) -> str:
+    diag = getattr(e, "diag", None)
+    return (diag.message_primary if diag and diag.message_primary else str(e).splitlines()[0])
+
+
+@app.exception_handler(psycopg.errors.CheckViolation)
+def _check_violation(_req: Request, e: psycopg.Error):
+    return JSONResponse(status_code=400, content={"error": _pg_message(e)})
+
+
+@app.exception_handler(psycopg.errors.IntegrityError)
+def _integrity_error(_req: Request, e: psycopg.Error):
+    return JSONResponse(status_code=409, content={"error": _pg_message(e)})
+
+
+@app.exception_handler(psycopg.errors.RaiseException)
+def _raised(_req: Request, e: psycopg.Error):   # business rules raised by triggers / procedures
+    return JSONResponse(status_code=400, content={"error": _pg_message(e)})
+
+
+def demo_guard(x_admin_token: str | None = Header(default=None)):
+    """Demo controls can wipe and tamper with the database: off unless ZTDB_DEMO_MODE is on."""
+    if not config.DEMO_MODE:
+        raise vcs.VcsError("demo controls are disabled on this server (ZTDB_DEMO_MODE=off)", 403)
+    if config.ADMIN_TOKEN and not secrets.compare_digest(x_admin_token or "", config.ADMIN_TOKEN):
+        raise vcs.VcsError("missing or wrong X-Admin-Token header", 401)
 
 
 # ------------------------------------------------------------------ models
@@ -47,6 +80,7 @@ class CheckoutIn(BaseModel):
 class RestoreIn(BaseModel):
     ref: str
     force: bool = False
+    move_head: bool = Field(False, description="also move the current branch to this commit (reset --hard)")
 
 
 class ProofIn(BaseModel):
@@ -117,7 +151,7 @@ def checkout(body: CheckoutIn):
 
 @app.post("/api/restore")
 def restore(body: RestoreIn):
-    return vcs.restore(body.ref, body.force)
+    return vcs.restore(body.ref, body.force, body.move_head)
 
 
 @app.post("/api/verify/{ref}")
@@ -186,16 +220,21 @@ def live(table: str, limit: int = 100, offset: int = 0):
     return JSONResponse(jsonable_encoder(demo.live_rows(table, limit, offset)))
 
 
-@app.post("/api/demo/reset")
+@app.get("/api/demo/config")
+def demo_config():
+    return {"demo_mode": config.DEMO_MODE, "token_required": bool(config.ADMIN_TOKEN)}
+
+
+@app.post("/api/demo/reset", dependencies=[Depends(demo_guard)])
 def demo_reset():
     return demo.reset()
 
 
-@app.post("/api/demo/business-day")
+@app.post("/api/demo/business-day", dependencies=[Depends(demo_guard)])
 def demo_business_day():
     return demo.business_day()
 
 
-@app.post("/api/demo/tamper")
+@app.post("/api/demo/tamper", dependencies=[Depends(demo_guard)])
 def demo_tamper(body: TamperIn):
     return demo.tamper(body.mode)

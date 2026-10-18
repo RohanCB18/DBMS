@@ -12,20 +12,64 @@ Neo4j       (:Commit)-[:PARENT]->(:Commit), (:Record)-[:HAS_VERSION]->(:Version)
 import hashlib
 import json
 import secrets
+import threading
+from contextlib import contextmanager
 from datetime import datetime, timezone
+
+import psycopg
 
 from pymongo import UpdateOne
 
 from . import graph, zk
 from .canonical import (MONGO_COLLECTIONS, SQL_TABLES, blob_id, make_record,
                         record_key, unfold)
+from . import config
 from .db import live_db, pg, store
 
 
 class VcsError(Exception):
-    def __init__(self, message: str, status: int = 400):
+    def __init__(self, message: str, status: int = 400, **extra):
         super().__init__(message)
         self.status = status
+        self.extra = extra
+
+
+# ---------------------------------------------------------------- locking
+
+LOCK_KEY = 72026101          # pg advisory-lock id for "a version-control write is running"
+_lock_state = threading.local()
+
+
+@contextmanager
+def vcs_lock(wait_seconds: int = 15):
+    """Serialise commit / restore / checkout / merge across threads and processes.
+
+    Uses a session-level PostgreSQL advisory lock on its own connection, so it also
+    protects against the CLI and the web UI acting at the same time. Re-entrant per thread
+    (checkout -> restore, merge -> commit).
+    """
+    if getattr(_lock_state, "depth", 0):
+        _lock_state.depth += 1
+        try:
+            yield
+        finally:
+            _lock_state.depth -= 1
+        return
+    conn = psycopg.connect(config.PG_DSN, autocommit=True)
+    try:
+        conn.execute(f"SET lock_timeout = '{int(wait_seconds)}s'")
+        try:
+            conn.execute("SELECT pg_advisory_lock(%s)", (LOCK_KEY,))
+        except psycopg.errors.LockNotAvailable:
+            raise VcsError("another version-control operation is in progress — try again", 409)
+        _lock_state.depth = 1
+        try:
+            yield
+        finally:
+            _lock_state.depth = 0
+            conn.execute("SELECT pg_advisory_unlock(%s)", (LOCK_KEY,))
+    finally:
+        conn.close()
 
 
 # ---------------------------------------------------------------- live state
@@ -73,6 +117,11 @@ def _key_map(records: list[dict]) -> dict[str, str]:
 # ---------------------------------------------------------------- commit
 
 def commit(message: str, author: str) -> dict:
+    with vcs_lock():
+        return _commit(message, author)
+
+
+def _commit(message: str, author: str) -> dict:
     with pg() as conn:
         h = head(conn)
         records = collect_live(conn)
@@ -214,44 +263,88 @@ def snapshot_records(ref: str, table: str | None = None, offset: int = 0, limit:
 
 # ---------------------------------------------------------------- restore / branches
 
-def restore(ref: str, force: bool = False) -> dict:
-    """Overwrite the live databases with the state of a commit (`git checkout <commit> -- .`)."""
-    st = status()
-    if not st["clean"] and not force:
-        raise VcsError("working database has uncommitted changes — commit them or pass force=true", 409)
-    with pg() as conn:
-        cid = resolve(conn, ref)
+def snapshot_by_table(cid: str) -> dict[str, list[dict]]:
+    """A commit's records grouped by table, as flat rows with their primary key in `__pk`."""
     entries = manifest(cid)["entries"]
     blobs = _blobs(e["blob"] for e in entries)
     by_table: dict[str, list[dict]] = {}
     for e in entries:
         b = blobs[e["blob"]]
         by_table.setdefault(b["table"], []).append({**unfold(b), "__pk": b["pk"]})
+    return by_table
 
-    with pg() as conn:
-        with conn.transaction():
-            conn.execute("SET LOCAL ztdb.restoring = 'on'")       # silences audit + state-machine triggers
-            for table in reversed(SQL_TABLES):
-                conn.execute(f"DELETE FROM bank.{table}")
-            for table, pk in SQL_TABLES.items():
-                rows = by_table.get(table, [])
-                if not rows:
-                    continue
-                cols = [pk] + [c for c in rows[0] if c != "__pk"]
-                sql = (f"INSERT INTO bank.{table} ({', '.join(cols)}) "
-                       f"VALUES ({', '.join(['%s'] * len(cols))})")
-                with conn.cursor() as cur:
-                    cur.executemany(sql, [[r["__pk"]] + [r.get(c) for c in cols[1:]] for r in rows])
-            conn.execute("""SELECT setval('bank.txn_id_seq', GREATEST(
-                              (SELECT COALESCE(MAX(txn_id), 100000) FROM bank.transactions),
-                              (SELECT last_value FROM bank.txn_id_seq)))""")
-            conn.execute("DELETE FROM vcs.change_log")
+
+def _write_live(by_table: dict[str, list[dict]]) -> None:
+    """Replace the live Postgres tables and Mongo collections with the given rows.
+
+    MongoDB is staged into `<coll>__incoming` first and swapped in with an atomic rename
+    only after the PostgreSQL transaction has committed, so a failure on either side never
+    leaves the two stores half-restored.
+    """
+    staged = {}
     for coll, pk in MONGO_COLLECTIONS.items():
-        live_db[coll].delete_many({})
+        tmp = f"{coll}__incoming"
+        live_db[tmp].drop()
         docs = [{pk: r["__pk"], **{k: v for k, v in r.items() if k != "__pk"}} for r in by_table.get(coll, [])]
         if docs:
-            live_db[coll].insert_many(docs)
-    return {"restored": cid, "records": len(entries)}
+            live_db[tmp].insert_many(docs)
+        staged[coll] = (tmp, bool(docs))
+    try:
+        with pg() as conn:
+            with conn.transaction():
+                conn.execute("SET LOCAL ztdb.restoring = 'on'")       # silences audit + state-machine triggers
+                for table in reversed(SQL_TABLES):
+                    conn.execute(f"DELETE FROM bank.{table}")
+                for table, pk in SQL_TABLES.items():
+                    rows = by_table.get(table, [])
+                    if not rows:
+                        continue
+                    cols = [pk] + [c for c in rows[0] if c != "__pk"]
+                    sql = (f"INSERT INTO bank.{table} ({', '.join(cols)}) "
+                           f"VALUES ({', '.join(['%s'] * len(cols))})")
+                    with conn.cursor() as cur:
+                        cur.executemany(sql, [[r["__pk"]] + [r.get(c) for c in cols[1:]] for r in rows])
+                conn.execute("""SELECT setval('bank.txn_id_seq', GREATEST(
+                                  (SELECT COALESCE(MAX(txn_id), 100000) FROM bank.transactions),
+                                  (SELECT last_value FROM bank.txn_id_seq)))""")
+                conn.execute("DELETE FROM vcs.change_log")
+    except Exception:
+        for tmp, _ in staged.values():
+            live_db[tmp].drop()
+        raise
+    for coll, (tmp, has_docs) in staged.items():
+        if has_docs:
+            live_db[tmp].rename(coll, dropTarget=True)
+        else:
+            live_db[coll].delete_many({})
+
+
+def _move_head(cid: str) -> str:
+    with pg() as conn:
+        branch = head(conn)["branch"]
+        conn.execute("UPDATE vcs.branches SET head_commit = %s WHERE branch_name = %s", (cid, branch))
+    graph.set_branch(branch, cid)
+    return branch
+
+
+def restore(ref: str, force: bool = False, move_head: bool = False) -> dict:
+    """Overwrite the live databases with the state of a commit.
+
+    move_head=False: `git checkout <commit> -- .` (the branch still points at its old head,
+    so `status` shows the difference). move_head=True: `git reset --hard <commit>`.
+    """
+    with vcs_lock():
+        st = status()
+        if not st["clean"] and not force:
+            raise VcsError("working database has uncommitted changes — commit them or pass force=true", 409)
+        with pg() as conn:
+            cid = resolve(conn, ref)
+        by_table = snapshot_by_table(cid)
+        _write_live(by_table)
+        result = {"restored": cid, "records": sum(len(v) for v in by_table.values())}
+        if move_head:
+            result["branch_moved"] = _move_head(cid)
+        return result
 
 
 def branches() -> list[dict]:
@@ -267,6 +360,8 @@ def create_branch(name: str, start: str | None = None) -> dict:
         cid = resolve(conn, start) if start else head(conn)["commit"]
         if not cid:
             raise VcsError("make a first commit before branching")
+        if conn.execute("SELECT 1 FROM vcs.branches WHERE branch_name = %s", (name,)).fetchone():
+            raise VcsError(f"branch '{name}' already exists", 409)
         conn.execute("INSERT INTO vcs.branches (branch_name, head_commit) VALUES (%s, %s)", (name, cid))
     graph.set_branch(name, cid)
     return {"name": name, "head": cid}
@@ -274,14 +369,15 @@ def create_branch(name: str, start: str | None = None) -> dict:
 
 def checkout(branch: str, force: bool = False) -> dict:
     """Switch the working database to another branch (restores its head commit)."""
-    with pg() as conn:
-        row = conn.execute("SELECT head_commit FROM vcs.branches WHERE branch_name = %s", (branch,)).fetchone()
-    if not row:
-        raise VcsError(f"no branch '{branch}'", 404)
-    result = restore(row["head_commit"].strip(), force=force)
-    with pg() as conn:
-        conn.execute("UPDATE vcs.head SET branch_name = %s", (branch,))
-    return {"branch": branch, **result}
+    with vcs_lock():
+        with pg() as conn:
+            row = conn.execute("SELECT head_commit FROM vcs.branches WHERE branch_name = %s", (branch,)).fetchone()
+        if not row:
+            raise VcsError(f"no branch '{branch}'", 404)
+        result = restore(row["head_commit"].strip(), force=force)
+        with pg() as conn:
+            conn.execute("UPDATE vcs.head SET branch_name = %s", (branch,))
+        return {"branch": branch, **result}
 
 
 # ---------------------------------------------------------------- verify

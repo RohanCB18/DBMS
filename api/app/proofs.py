@@ -9,6 +9,9 @@ publicSignals = [root, tableTag, pk, fieldName, op, claimValue]  (see circuits/r
 """
 import secrets
 from datetime import datetime, timezone
+from typing import Literal
+
+from pydantic import BaseModel, Field, ValidationError
 
 from . import graph, zk
 from .canonical import record_key, unfold
@@ -91,8 +94,35 @@ def list_all(limit: int = 50) -> list[dict]:
                 .sort("created_at", -1).limit(limit))
 
 
+class _Claim(BaseModel):
+    table: str
+    pk: str | int
+    field: str
+    op: Literal["eq", "gte", "lte"]
+    value: str | int | bool | None
+
+
+class _Package(BaseModel):
+    commit_id: str
+    root: str
+    claim: _Claim
+    proof: dict
+    publicSignals: list[str] = Field(min_length=6, max_length=6)
+
+
+def _validate(pkg) -> None:
+    if not isinstance(pkg, dict):
+        raise VcsError("a proof package must be a JSON object", 400)
+    try:
+        _Package.model_validate(pkg)
+    except ValidationError as e:
+        problems = "; ".join(f"{'.'.join(map(str, err['loc'])) or 'package'}: {err['msg']}" for err in e.errors()[:5])
+        raise VcsError(f"not a valid proof package — {problems}", 400)
+
+
 def verify_package(pkg: dict) -> dict:
     """What an auditor checks. Only (3) touches our ledger; (1) and (2) are pure maths."""
+    _validate(pkg)
     checks = []
     sig = pkg["publicSignals"]
     ok_proof = zk.verify(pkg["proof"], sig)

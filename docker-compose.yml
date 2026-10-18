@@ -1,4 +1,5 @@
 # ZK-TemporalDB - the whole stack with one command:  docker compose up -d --build
+# Secrets and options come from .env (copy .env.example); the defaults below are for local demos only.
 name: ztdb
 
 services:
@@ -6,7 +7,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ztdb
-      POSTGRES_PASSWORD: ztdb
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ztdb}
       POSTGRES_DB: ztdb
     ports: ["5544:5432"]
     volumes:
@@ -29,7 +30,7 @@ services:
   neo4j:
     image: neo4j:5-community
     environment:
-      NEO4J_AUTH: neo4j/ztdb-neo4j
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-ztdb-neo4j}
       NEO4J_server_memory_heap_max__size: 512m
     ports: ["7474:7474", "7687:7687"]
     volumes: [neo4jdata:/data]
@@ -49,12 +50,20 @@ services:
   api:
     build: ./api
     environment:
-      PG_DSN: postgresql://ztdb:ztdb@postgres:5432/ztdb
+      PG_DSN: postgresql://ztdb:${POSTGRES_PASSWORD:-ztdb}@postgres:5432/ztdb
+      PG_READER_DSN: postgresql://ztdb_reader:ztdb_reader@postgres:5432/ztdb
       MONGO_URI: mongodb://mongo:27017
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
-      NEO4J_PASSWORD: ztdb-neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-ztdb-neo4j}
       ZK_URL: http://zk-service:7000
+      ZTDB_DEMO_MODE: ${ZTDB_DEMO_MODE:-on}
+      ZTDB_ADMIN_TOKEN: ${ZTDB_ADMIN_TOKEN:-}
+      ZTDB_EXTERNAL_ANCHOR: ${ZTDB_EXTERNAL_ANCHOR:-off}
+      ZTDB_GITHUB_TOKEN: ${ZTDB_GITHUB_TOKEN:-}
+      ZTDB_GITHUB_REPO: ${ZTDB_GITHUB_REPO:-}
+      ZTDB_GITHUB_PATH: ${ZTDB_GITHUB_PATH:-anchors.jsonl}
+      ZTDB_GITHUB_BRANCH: ${ZTDB_GITHUB_BRANCH:-main}
     ports: ["8100:8000"]
     depends_on:
       postgres: { condition: service_healthy }
