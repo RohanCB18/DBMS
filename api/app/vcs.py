@@ -23,6 +23,7 @@ from pymongo import UpdateOne
 from . import graph, zk
 from .canonical import (MONGO_COLLECTIONS, SQL_TABLES, blob_id, make_record,
                         record_key, unfold)
+from .merge import merge_snapshots
 from . import config
 from .db import live_db, pg, store
 
@@ -116,12 +117,13 @@ def _key_map(records: list[dict]) -> dict[str, str]:
 
 # ---------------------------------------------------------------- commit
 
-def commit(message: str, author: str) -> dict:
+def commit(message: str, author: str, extra_parent: str | None = None) -> dict:
+    """Snapshot the live databases. `extra_parent` makes it a merge commit (two parents)."""
     with vcs_lock():
-        return _commit(message, author)
+        return _commit(message, author, extra_parent)
 
 
-def _commit(message: str, author: str) -> dict:
+def _commit(message: str, author: str, extra_parent: str | None = None) -> dict:
     with pg() as conn:
         h = head(conn)
         records = collect_live(conn)
@@ -129,7 +131,7 @@ def _commit(message: str, author: str) -> dict:
             raise VcsError("database exceeds the 8192-record capacity of the Merkle tree")
         parent_tree = manifest(h["commit"]) if h["commit"] else None
         ids = [blob_id(r) for r in records]
-        if parent_tree and [e["blob"] for e in parent_tree["entries"]] == ids:
+        if parent_tree and not extra_parent and [e["blob"] for e in parent_tree["entries"]] == ids:
             raise VcsError("nothing to commit — working database matches HEAD", 409)
 
         # Content-addressed blob store: an unchanged record keeps its blob (and salt).
@@ -147,6 +149,8 @@ def _commit(message: str, author: str) -> dict:
 
         created = datetime.now(timezone.utc)
         parents = [h["commit"]] if h["commit"] else []
+        if extra_parent:
+            parents.append(extra_parent)
         commit_id = hashlib.sha256(
             f"{root}|{','.join(parents)}|{message}|{author}|{created.isoformat()}".encode()).hexdigest()[:16]
         entries = [{"key": record_key(r["table"], r["pk"]), "blob": b, "leaf": l}
@@ -378,6 +382,67 @@ def checkout(branch: str, force: bool = False) -> dict:
         with pg() as conn:
             conn.execute("UPDATE vcs.head SET branch_name = %s", (branch,))
         return {"branch": branch, **result}
+
+
+# ---------------------------------------------------------------- merge
+
+def merge(source: str, resolutions: dict | None = None, message: str | None = None,
+          author: str = "demo-user", dry_run: bool = False) -> dict:
+    """Three-way merge of `source` (branch or commit) into the current branch.
+
+    up-to-date  -> nothing to do
+    fast-forward-> the current branch simply moves to `source` (no new commit)
+    merged      -> record/field-level three-way merge, written to the live DBs and
+                   committed with two parents; HTTP 409 with the conflict list if any
+                   conflict has no entry in `resolutions` ("key" or "key|field" -> ours|theirs)
+    dry_run=True reports what would happen (including conflicts) without writing anything.
+    """
+    with vcs_lock():
+        if not status()["clean"]:
+            raise VcsError("working database has uncommitted changes — commit them before merging", 409)
+        with pg() as conn:
+            h = head(conn)
+            ours, theirs = h["commit"], resolve(conn, source)
+            if not ours:
+                raise VcsError("the current branch has no commits yet")
+            base = conn.execute("SELECT vcs.fn_merge_base(%s, %s) AS b", (ours, theirs)).fetchone()["b"]
+            base = base.strip() if base else None
+        info = {"branch": h["branch"], "ours": ours, "theirs": theirs, "base": base}
+        if theirs == ours or base == theirs:
+            return {"result": "up-to-date", **info}
+        if base == ours:
+            if dry_run:
+                return {"result": "fast-forward", "commit_id": theirs, "dry_run": True, **info}
+            restore(theirs, force=True, move_head=True)
+            return {"result": "fast-forward", "commit_id": theirs, **info}
+
+        snapshots, pks = {}, {}
+        trees = {name: manifest(cid)["entries"] if cid else []
+                 for name, cid in (("base", base), ("ours", ours), ("theirs", theirs))}
+        blobs = _blobs({e["blob"] for entries in trees.values() for e in entries})
+        for name, entries in trees.items():
+            snapshots[name] = {e["key"]: unfold(blobs[e["blob"]]) for e in entries}
+            for e in entries:
+                pks[e["key"]] = (blobs[e["blob"]]["table"], blobs[e["blob"]]["pk"])
+        merged, conflicts, resolved = merge_snapshots(
+            snapshots["base"], snapshots["ours"], snapshots["theirs"], resolutions)
+        if dry_run:
+            changed = sum(1 for k in set(merged) | set(snapshots["ours"])
+                          if merged.get(k) != snapshots["ours"].get(k))
+            return {"result": "conflicts" if conflicts else "clean", "dry_run": True, "conflicts": conflicts,
+                    "conflicts_resolved": resolved, "records_changed_on_ours": changed, **info}
+        if conflicts:
+            raise VcsError(f"{len(conflicts)} merge conflict(s) — resolve each one as ours or theirs", 409,
+                           conflicts=conflicts, **info)
+
+        by_table: dict[str, list[dict]] = {}
+        for key, row in merged.items():
+            table, pk = pks[key]
+            by_table.setdefault(table, []).append({**row, "__pk": pk})
+        _write_live(by_table)
+        result = commit(message or f"Merge {source} into {h['branch']}", author, extra_parent=theirs)
+        return {"result": "merged", "commit_id": result["commit_id"], "commit": result,
+                "conflicts_resolved": resolved, **info}
 
 
 # ---------------------------------------------------------------- verify

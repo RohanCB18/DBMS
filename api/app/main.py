@@ -83,6 +83,15 @@ class RestoreIn(BaseModel):
     move_head: bool = Field(False, description="also move the current branch to this commit (reset --hard)")
 
 
+class MergeIn(BaseModel):
+    source: str = Field(description="branch name or commit to merge into the current branch")
+    resolutions: dict[str, Literal["ours", "theirs"]] | None = Field(
+        None, description='conflict choices: {"<key>" or "<key>|<field>": "ours" | "theirs"}')
+    message: str | None = Field(None, max_length=200)
+    author: str = "demo-user"
+    dry_run: bool = Field(False, description="report the outcome and conflicts without writing")
+
+
 class ProofIn(BaseModel):
     ref: str = Field(description="commit id, prefix or branch name")
     table: str
@@ -100,6 +109,10 @@ class InclusionIn(BaseModel):
 
 class TamperIn(BaseModel):
     mode: Literal["blob", "root", "undo"]
+
+
+class ScenarioIn(BaseModel):
+    mode: Literal["clean", "conflict"]
 
 
 # ------------------------------------------------------------------ version control
@@ -152,6 +165,11 @@ def checkout(body: CheckoutIn):
 @app.post("/api/restore")
 def restore(body: RestoreIn):
     return vcs.restore(body.ref, body.force, body.move_head)
+
+
+@app.post("/api/merge")
+def merge(body: MergeIn):
+    return vcs.merge(body.source, body.resolutions, body.message, body.author, body.dry_run)
 
 
 @app.post("/api/verify/{ref}")
@@ -238,3 +256,8 @@ def demo_business_day():
 @app.post("/api/demo/tamper", dependencies=[Depends(demo_guard)])
 def demo_tamper(body: TamperIn):
     return demo.tamper(body.mode)
+
+
+@app.post("/api/demo/merge-scenario", dependencies=[Depends(demo_guard)])
+def demo_merge_scenario(body: ScenarioIn):
+    return demo.merge_scenario(body.mode)

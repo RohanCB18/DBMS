@@ -214,3 +214,55 @@ def live_rows(table: str, limit: int = 100, offset: int = 0) -> dict:
         return {"table": table, "total": live_db.kyc_documents.count_documents({}),
                 "rows": list(live_db.kyc_documents.find().sort("_id", 1).skip(offset).limit(limit))}
     raise vcs.VcsError(f"unknown table {table}", 404)
+
+
+def _free_branch_name(base: str) -> str:
+    existing = {b["name"] for b in vcs.branches()}
+    name, n = base, 2
+    while name in existing:
+        name, n = f"{base}-{n}", n + 1
+    return name
+
+
+def merge_scenario(mode: str) -> dict:
+    """Prepare two diverged branches so the merge feature can be demonstrated.
+
+    clean    : branch `audit-fix` corrects customer 7's phone; main updates customer 12's city.
+               Different records -> merges cleanly into a two-parent commit.
+    conflict : branch `kyc-review` and main both change customer 7's phone (PostgreSQL) and
+               KYC risk score (MongoDB) to different values -> two field conflicts to resolve.
+    Leaves the working database on the original branch, clean, ready for `POST /api/merge`.
+    """
+    if mode not in ("clean", "conflict"):
+        raise vcs.VcsError("mode must be clean | conflict")
+    st = vcs.status()
+    if not st["clean"]:
+        raise vcs.VcsError("commit or discard the uncommitted changes first", 409)
+    home = st["branch"]
+    branch = _free_branch_name("audit-fix" if mode == "clean" else "kyc-review")
+    vcs.create_branch(branch)
+    vcs.checkout(branch)
+    with pg() as conn:
+        if mode == "clean":
+            conn.execute("UPDATE bank.customers SET phone = '9811122233' WHERE customer_id = 7")
+            msg = "Audit fix: correct phone number of customer 7"
+        else:
+            conn.execute("UPDATE bank.customers SET phone = '9822200001' WHERE customer_id = 7")
+            msg = "KYC review: customer 7 is high risk, phone re-verified"
+    if mode == "conflict":
+        live_db.kyc_documents.update_one({"customer_id": 7}, {"$set": {"risk_score": 95}})
+    side = vcs.commit(msg, "auditor")
+    vcs.checkout(home)
+    with pg() as conn:
+        if mode == "clean":
+            conn.execute("UPDATE bank.customers SET city = 'Pune' WHERE customer_id = 12")
+            msg = "Customer 12 moved to Pune"
+        else:
+            conn.execute("UPDATE bank.customers SET phone = '9833300002' WHERE customer_id = 7")
+            msg = "Branch desk: customer 7 updated phone, low risk"
+    if mode == "conflict":
+        live_db.kyc_documents.update_one({"customer_id": 7}, {"$set": {"risk_score": 3}})
+    main = vcs.commit(msg, "ops")
+    return {"mode": mode, "source_branch": branch, "target_branch": home,
+            "source_commit": side["commit_id"], "target_commit": main["commit_id"],
+            "next": f"POST /api/merge {{\"source\": \"{branch}\"}}"}
