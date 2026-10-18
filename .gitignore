@@ -1,0 +1,9 @@
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.env
+dist/
+
+# circuit build outputs (large; final artifacts are copied to zk-service/artifacts and web/public/zk)
+circuits/build/

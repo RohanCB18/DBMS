@@ -1,0 +1,14 @@
+{
+  "name": "ztdb-zk-service",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node test/selftest.js"
+  },
+  "dependencies": {
+    "circomlibjs": "0.1.7",
+    "express": "4.21.2",
+    "snarkjs": "0.7.6"
+  }
+}
