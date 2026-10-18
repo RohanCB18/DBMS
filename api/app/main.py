@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from . import analytics, config, demo, graph, proofs, sqlconsole, stats, vcs, zk
+from . import analytics, anchoring, config, demo, graph, proofs, sqlconsole, stats, vcs, zk
 
 
 @asynccontextmanager
@@ -204,6 +204,16 @@ def verify(ref: str):
 @app.get("/api/anchors")
 def anchors():
     return vcs.anchors()
+
+
+@app.get("/api/anchors/external")
+def external_anchors():
+    return JSONResponse(jsonable_encoder(anchoring.status()))
+
+
+@app.get("/api/anchors/external/{seq}")
+def external_anchor_check(seq: int, entry_hash: str):
+    return anchoring.check(seq, entry_hash)
 
 
 # ------------------------------------------------------------------ proofs

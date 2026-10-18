@@ -13,7 +13,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
-from . import graph, zk
+from . import anchoring, graph, zk
 from .canonical import record_key, unfold
 from .db import pg, store
 from .vcs import VcsError, manifest, resolve
@@ -140,7 +140,16 @@ def verify_package(pkg: dict) -> dict:
         broken = conn.execute("SELECT count(*) AS n FROM vcs.fn_verify_anchor_chain()").fetchone()["n"]
     anchored = a is not None and a["root"] == pkg["root"] and broken == 0
     checks.append({"check": "Root is the one anchored for that commit in the transparency log", "ok": anchored})
-    return {"valid": all(x["ok"] for x in checks), "checks": checks, "claim_text": pkg.get("claim_text")}
+
+    external = None
+    anchor = pkg.get("anchor") or {}
+    if anchoring.mode() != "off" and anchor.get("seq") is not None:
+        external = anchoring.check(int(anchor["seq"]), str(anchor.get("entry_hash")))
+        if external.get("checked"):
+            checks.append({"check": f"Anchor matches the externally published copy ({external['mode']})",
+                           "ok": external["ok"]})
+    return {"valid": all(x["ok"] for x in checks), "checks": checks, "claim_text": pkg.get("claim_text"),
+            "external_anchor": external}
 
 
 def inclusion(ref: str, table: str, pk: str) -> dict:

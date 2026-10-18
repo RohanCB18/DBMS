@@ -118,7 +118,7 @@ def reset() -> dict:
             cur.executemany("INSERT INTO bank.accounts VALUES (%s, %s, %s, %s, %s, %s, %s)", accounts)
             cur.executemany("INSERT INTO bank.transactions VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", txns)
         conn.execute(f"SELECT setval('bank.txn_id_seq', {HERO_TXN})")
-    for name in ("blobs", "trees", "proofs", "tamper_backup"):
+    for name in ("blobs", "trees", "proofs", "tamper_backup", "external_anchors"):
         store[name].drop()
     live_db.kyc_documents.drop()
     live_db.kyc_documents.insert_many(kyc)

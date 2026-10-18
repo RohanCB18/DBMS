@@ -20,7 +20,7 @@ import psycopg
 
 from pymongo import UpdateOne
 
-from . import graph, zk
+from . import anchoring, graph, zk
 from .canonical import (MONGO_COLLECTIONS, SQL_TABLES, blob_id, make_record,
                         record_key, unfold)
 from .merge import merge_snapshots
@@ -161,14 +161,16 @@ def _commit(message: str, author: str, extra_parent: str | None = None) -> dict:
         conn.execute("CALL vcs.sp_record_commit(%s, %s, %s::numeric, %s, %s, %s, %s::char(16)[])",
                      (commit_id, h["branch"], root, message, author, len(records), parents))
         conn.commit()
-        anchor = conn.execute("SELECT seq, entry_hash FROM vcs.anchors WHERE commit_id = %s",
-                              (commit_id,)).fetchone()
+        anchor_row = conn.execute("""SELECT seq, commit_id, merkle_root::text AS merkle_root, entry_hash, anchored_at
+                                     FROM vcs.anchors WHERE commit_id = %s""", (commit_id,)).fetchone()
+    anchor = {"seq": anchor_row["seq"], "entry_hash": anchor_row["entry_hash"]}
+    external = anchoring.publish(anchor_row)
 
     changes = _changes(parent_tree, entries)
     graph_ok = graph.sync_commit(commit_id, root, message, author, created, h["branch"], parents,
                                  len(records), changes)
     return {"commit_id": commit_id, "branch": h["branch"], "root": root, "parents": parents,
-            "record_count": len(records), "anchor": anchor, "graph_synced": graph_ok,
+            "record_count": len(records), "anchor": anchor, "external_anchor": external, "graph_synced": graph_ok,
             "summary": {k: len(v) for k, v in changes.items()}}
 
 
@@ -454,7 +456,7 @@ def verify(ref: str) -> dict:
         pg_root = str(conn.execute("SELECT merkle_root FROM vcs.commits WHERE commit_id = %s",
                                    (cid,)).fetchone()["merkle_root"])
         chain_issues = conn.execute("SELECT * FROM vcs.fn_verify_anchor_chain()").fetchall()
-        anchor = conn.execute("SELECT merkle_root, entry_hash FROM vcs.anchors WHERE commit_id = %s",
+        anchor = conn.execute("SELECT seq, merkle_root, entry_hash FROM vcs.anchors WHERE commit_id = %s",
                               (cid,)).fetchone()
     tree = manifest(cid)
     entries = tree["entries"]
@@ -491,6 +493,13 @@ def verify(ref: str) -> dict:
                    "issues": [dict(i, commit_id=i["commit_id"].strip()) for i in chain_issues]
                    + ([] if anchor and str(anchor["merkle_root"]) == pg_root
                       else [{"problem": "anchored root differs from commit root"}])})
+
+    # 5. (optional) the anchor entry matches the copy published outside our infrastructure
+    if anchoring.mode() != "off" and anchor is not None:
+        ext = anchoring.check(anchor["seq"], anchor["entry_hash"])
+        if ext.get("checked"):
+            layers.append({"layer": f"5. External anchor ({ext['mode']})", "ok": ext["ok"],
+                           "issues": [] if ext["ok"] else [{"problem": ext["problem"]}]})
 
     ok = all(l["ok"] for l in layers)
     tampered = sorted({i["key"] for l in layers for i in l["issues"] if "key" in i})
