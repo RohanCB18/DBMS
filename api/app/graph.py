@@ -125,3 +125,68 @@ def touched_by(commit_id: str) -> list[dict]:
 def wipe():
     with neo.session() as s:
         s.run("MATCH (n) DETACH DELETE n")
+
+
+# ---------------------------------------------------------------- money flow (business analytics)
+#
+#   (:Account {id, owner, status, branch})-[:SENT {txn_id, amount, status, at, channel}]->(:Account)
+#   (:MoneyFlow {commit})   marker: which commit the money-flow graph was built from
+#
+# Built on demand from a commit snapshot and rebuilt when another commit is asked for.
+
+def sync_money_flow(commit_id: str, accounts: list[dict], txns: list[dict]) -> bool:
+    """(Re)build the money-flow graph for a commit. Returns False if it was already current."""
+    with neo.session() as s:
+        current = s.run("MATCH (m:MoneyFlow) RETURN m.commit AS c").single()
+        if current and current["c"] == commit_id:
+            return False
+        s.run("MATCH (n) WHERE n:Account OR n:MoneyFlow DETACH DELETE n")
+        s.run("CREATE CONSTRAINT account_id IF NOT EXISTS FOR (a:Account) REQUIRE a.id IS UNIQUE")
+        s.run("""UNWIND $accounts AS a
+                 CREATE (:Account {id: a.id, owner: a.owner, status: a.status, branch: a.branch})""",
+              accounts=accounts)
+        s.run("""UNWIND $txns AS t
+                 MATCH (a:Account {id: t.from}), (b:Account {id: t.to})
+                 CREATE (a)-[:SENT {txn_id: t.id, amount: t.amount, status: t.status,
+                                    at: datetime(t.at), channel: t.channel}]->(b)""", txns=txns)
+        s.run("CREATE (:MoneyFlow {commit: $c, built_at: datetime()})", c=commit_id)
+    return True
+
+
+def fraud_rings(min_amount: int, max_hours: int, limit: int = 10) -> list[dict]:
+    """Cycles of 3-5 large, completed transfers that return to their start within a time window.
+
+    The quantified path pattern prunes during expansion (only big COMPLETED edges are followed),
+    so the search stays fast although the full graph has hundreds of transfers.
+    """
+    with neo.session() as s:
+        return [dict(r) for r in s.run(
+            """MATCH p = (a:Account) (()-[r:SENT WHERE r.amount >= $min AND r.status = 'COMPLETED']->()){3,5} (a)
+               WITH p, a, relationships(p) AS rels, [n IN nodes(p) | n.id] AS ids
+               WHERE a.id = reduce(m = a.id, x IN ids | CASE WHEN x < m THEN x ELSE m END)
+               WITH p, rels, ids,
+                    reduce(lo = rels[0].at, x IN rels | CASE WHEN x.at < lo THEN x.at ELSE lo END) AS first,
+                    reduce(hi = rels[0].at, x IN rels | CASE WHEN x.at > hi THEN x.at ELSE hi END) AS last
+               WHERE duration.inSeconds(first, last).hours <= $hours
+               RETURN ids[0..-1] AS accounts,
+                      [n IN nodes(p)[0..-1] | n.owner] AS owners,
+                      [n IN nodes(p)[0..-1] | n.status] AS statuses,
+                      [x IN rels | {txn_id: x.txn_id, from: startNode(x).id, to: endNode(x).id,
+                                    amount: x.amount, at: toString(x.at)}] AS transfers,
+                      reduce(t = 0, x IN rels | t + x.amount) AS total_amount,
+                      duration.inSeconds(first, last).minutes AS span_minutes
+               ORDER BY total_amount DESC LIMIT $limit""",
+            min=min_amount, hours=max_hours, limit=limit)]
+
+
+def money_flow_summary() -> dict:
+    with neo.session() as s:
+        row = s.run("""MATCH (m:MoneyFlow)
+                       CALL { MATCH (a:Account) RETURN count(a) AS accounts }
+                       CALL { MATCH ()-[r:SENT]->() RETURN count(r) AS transfers }
+                       RETURN m.commit AS commit, accounts, transfers""").single()
+        top = [dict(r) for r in s.run(
+            """MATCH (a:Account)-[r:SENT {status: 'COMPLETED'}]->()
+               RETURN a.id AS account, a.owner AS owner, count(r) AS sent, sum(r.amount) AS total
+               ORDER BY total DESC LIMIT 5""")]
+    return {**(dict(row) if row else {}), "top_senders": top}

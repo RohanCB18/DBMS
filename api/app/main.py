@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from . import config, demo, graph, proofs, sqlconsole, stats, vcs, zk
+from . import analytics, config, demo, graph, proofs, sqlconsole, stats, vcs, zk
 
 
 @asynccontextmanager
@@ -114,6 +114,10 @@ class InclusionIn(BaseModel):
 
 class TamperIn(BaseModel):
     mode: Literal["blob", "root", "undo"]
+
+
+class FreezeIn(BaseModel):
+    account_ids: list[int] = Field(min_length=1, max_length=20)
 
 
 class ScenarioIn(BaseModel):
@@ -251,6 +255,11 @@ def graph_touched(commit_id: str):
     return graph.touched_by(commit_id)
 
 
+@app.get("/api/graph/fraud-rings")
+def fraud_rings(ref: str = "HEAD", min_amount_inr: int = 100_000, max_hours: int = 24):
+    return JSONResponse(jsonable_encoder(analytics.fraud_rings(ref, min_amount_inr, max_hours)))
+
+
 # ------------------------------------------------------------------ live data + demo
 
 @app.get("/api/live/{table}")
@@ -281,3 +290,8 @@ def demo_tamper(body: TamperIn):
 @app.post("/api/demo/merge-scenario", dependencies=[Depends(demo_guard)])
 def demo_merge_scenario(body: ScenarioIn):
     return demo.merge_scenario(body.mode)
+
+
+@app.post("/api/demo/freeze", dependencies=[Depends(demo_guard)])
+def demo_freeze(body: FreezeIn):
+    return demo.freeze_accounts(body.account_ids)

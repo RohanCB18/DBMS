@@ -12,6 +12,8 @@ from .canonical import SQL_TABLES
 from .db import live_db, pg, store
 
 HERO_TXN = 100600
+RING_TXNS = [100590, 100591, 100592, 100593]                        # A -> B -> C -> D -> A
+RING_AMOUNTS = [198_500_00, 197_900_00, 197_200_00, 196_800_00]     # paise, each just under ₹2 lakh
 
 BRANCHES = [
     ("BLR001", "MG Road", "Bengaluru"), ("BLR002", "Koramangala", "Bengaluru"),
@@ -66,7 +68,22 @@ def _seed_rows(rng: random.Random):
 
     ids = [a[0] for a in accounts]
     txns, t = [], now - timedelta(days=90)
+    ring = []
     for txn_id in range(100001, HERO_TXN):
+        if txn_id in RING_TXNS:
+            # Fraud ring (layering): the same ~₹1.97 lakh goes round 4 accounts within hours,
+            # each hop just under the ₹2 lakh reporting threshold. Neo4j finds the cycle.
+            if not ring:
+                ring = sorted((a for a in ids if a not in (5001000001, builder)),
+                              key=lambda a: balance[a], reverse=True)[:4]
+            hop = RING_TXNS.index(txn_id)
+            src, dst = ring[hop], ring[(hop + 1) % len(ring)]
+            amount = RING_AMOUNTS[hop]
+            t += timedelta(minutes=rng.randint(20, 50))
+            balance[src] -= amount
+            balance[dst] += amount
+            txns.append((txn_id, src, dst, amount, "COMPLETED", "IMPS", t, "Consultancy fee"))
+            continue
         t += timedelta(minutes=rng.randint(60, 300))
         src, dst = rng.sample(ids, 2)
         amount = min(rng.randint(100, 50_000) * 100, balance[src])
@@ -91,7 +108,7 @@ def reset() -> dict:
         sqlconsole.drop_all(conn)
         conn.execute("""TRUNCATE bank.transactions, bank.accounts, bank.customers, bank.bank_branches,
                         vcs.verification_runs, vcs.anchors, vcs.change_log, vcs.head,
-                        vcs.commit_parents, vcs.branches, vcs.commits CASCADE""")
+                        vcs.commit_parents, vcs.branches, vcs.commits RESTART IDENTITY CASCADE""")
         conn.execute("INSERT INTO vcs.branches (branch_name) VALUES ('main')")
         conn.execute("INSERT INTO vcs.head (branch_name) VALUES ('main')")
         branches, customers, accounts, txns, kyc = _seed_rows(random.Random(42))
@@ -267,3 +284,12 @@ def merge_scenario(mode: str) -> dict:
     return {"mode": mode, "source_branch": branch, "target_branch": home,
             "source_commit": side["commit_id"], "target_commit": main["commit_id"],
             "next": f"POST /api/merge {{\"source\": \"{branch}\"}}"}
+
+
+def freeze_accounts(account_ids: list[int]) -> dict:
+    """Compliance action after a fraud ring is found (uncommitted until the next commit)."""
+    with pg() as conn:
+        rows = conn.execute("""UPDATE bank.accounts SET status = 'FROZEN'
+                               WHERE account_id = ANY(%s) AND status = 'ACTIVE' RETURNING account_id""",
+                            (account_ids,)).fetchall()
+    return {"frozen": [r["account_id"] for r in rows], "status": vcs.status()}

@@ -4,3 +4,5 @@ psycopg[binary]==3.2.3
 pymongo==4.10.1
 neo4j==5.27.0
 httpx==0.28.1
+typer==0.15.1
+rich==13.9.4
