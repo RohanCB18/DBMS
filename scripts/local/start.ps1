@@ -1,10 +1,11 @@
-# Start the local stack without Docker: PostgreSQL :5544, Neo4j :7687/:7474, zk-service :7000, API :8100.
+# Start the local stack without Docker: PostgreSQL :5544, Neo4j :7687/:7474, zk-service :7000, API :8100,
+# web dashboard :8090 (Vite, proxies /api to the API).
 #
 #   powershell -ExecutionPolicy Bypass -File scripts\local\start.ps1            # everything
 #   powershell -ExecutionPolicy Bypass -File scripts\local\start.ps1 -Only postgres,neo4j
 #
 # Logs go to .local\logs\, process ids to .local\pids\. Stop with scripts\local\stop.ps1.
-param([string[]]$Only = @('postgres', 'neo4j', 'zk', 'api'))
+param([string[]]$Only = @('postgres', 'neo4j', 'zk', 'api', 'web'))
 $ErrorActionPreference = 'Stop'
 
 $root  = Resolve-Path (Join-Path $PSScriptRoot '..\..')
@@ -66,5 +67,16 @@ if ($Only -contains 'api') {
         Start-Bg 'api' $py @('-m', 'uvicorn', 'app.main:app', '--port', '8100') (Join-Path $root 'api')
         Wait-Port 8100 'api'
         Write-Host "  Swagger UI: http://localhost:8100/docs"
+    }
+}
+
+if ($Only -contains 'web') {
+    if (Test-Port 8090) { Write-Host "  web already running" }
+    else {
+        $web = Join-Path $root 'web'
+        if (-not (Test-Path (Join-Path $web 'node_modules'))) { Push-Location $web; npm install --no-audit --no-fund | Out-Null; Pop-Location }
+        Start-Bg 'web' 'node' @('node_modules/vite/bin/vite.js', '--port', '8090', '--strictPort') $web
+        Wait-Port 8090 'web'
+        Write-Host "  Dashboard:  http://localhost:8090      Auditor portal: http://localhost:8090/audit"
     }
 }

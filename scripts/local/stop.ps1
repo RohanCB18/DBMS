@@ -4,7 +4,7 @@ $root  = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $local = Join-Path $root '.local'
 $pids  = Join-Path $local 'pids'
 
-foreach ($name in 'api', 'zk', 'neo4j') {
+foreach ($name in 'web', 'api', 'zk', 'neo4j') {
     $f = Join-Path $pids "$name.pid"
     if (Test-Path $f) {
         $id = Get-Content $f

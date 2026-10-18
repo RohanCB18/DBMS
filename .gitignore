@@ -10,3 +10,4 @@ circuits/build/
 
 # portable local databases (scripts/local/*.ps1)
 .local/
+*.tsbuildinfo

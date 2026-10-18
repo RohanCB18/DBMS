@@ -71,11 +71,10 @@ services:
       neo4j: { condition: service_healthy }
       zk-service: { condition: service_healthy }
 
-  # web: React dashboard - TODO for teammate, see HANDOFF.md
-  # web:
-  #   build: ./web
-  #   ports: ["8090:80"]
-  #   depends_on: [api]
+  web:
+    build: ./web
+    ports: ["8090:80"]
+    depends_on: [api]
 
 volumes:
   pgdata:
