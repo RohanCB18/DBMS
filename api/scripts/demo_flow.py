@@ -132,6 +132,51 @@ call("POST", "/checkout", json={"branch": "main"})
 _, st = call("GET", "/status")
 expect(st["clean"] and st["branch"] == "main", "back on main, clean")
 
+step("14. Time-travel SQL: the same query as of v1 and v2")
+q = "SELECT status, count(*) AS n FROM transactions GROUP BY status ORDER BY status"
+_, s1 = call("POST", "/sql", json={"ref": c1["commit_id"], "query": q})
+_, s2 = call("POST", "/sql", json={"ref": c2["commit_id"], "query": q})
+print("   v1:", s1.get("rows"))
+print("   v2:", s2.get("rows"))
+expect(dict(map(tuple, s1["rows"])).get("PENDING") == 1, "v1 has exactly one PENDING txn (the hero)")
+code, _ = call("POST", "/sql", json={"ref": "main", "query": "DELETE FROM transactions"})
+expect(code == 400, "console refuses anything but SELECT")
+code, _ = call("POST", "/sql", json={"ref": "main", "query": "SELECT * FROM bank.accounts"})
+expect(code == 403, "console cannot read the live schema")
+
+step("15. Merge: clean three-way merge into a two-parent commit")
+_, sc = call("POST", "/demo/merge-scenario", json={"mode": "clean"})
+_, m = call("POST", "/merge", json={"source": sc["source_branch"]})
+print(f"   {m.get('result')}  base {m.get('base')}  parents {m.get('commit', {}).get('parents')}")
+expect(m.get("result") == "merged" and len(m["commit"]["parents"]) == 2, "clean merge creates a merge commit")
+
+step("16. Merge: conflicting edits must be resolved")
+_, sc = call("POST", "/demo/merge-scenario", json={"mode": "conflict"})
+code, mc = call("POST", "/merge", json={"source": sc["source_branch"]})
+for c in mc.get("conflicts", []):
+    print(f"   conflict {c['key']}.{c['field']}: base={c['base']} ours={c['ours']} theirs={c['theirs']}")
+expect(code == 409 and len(mc.get("conflicts", [])) == 2, "two conflicts reported (PostgreSQL + MongoDB)")
+res = {f"{c['key']}|{c['field']}": "theirs" for c in mc.get("conflicts", [])}
+code, m = call("POST", "/merge", json={"source": sc["source_branch"], "resolutions": res})
+expect(code == 200 and m.get("result") == "merged", "merge succeeds once conflicts are resolved")
+_, v = call("POST", "/verify/main")
+expect(v["ok"], "merged history verifies")
+
+step("17. Merge: fast-forward")
+call("POST", "/branches", json={"name": "hotfix"})
+call("POST", "/checkout", json={"branch": "hotfix"})
+call("POST", "/demo/business-day")
+call("POST", "/commit", json={"message": "Hotfix day", "author": "ops"})
+call("POST", "/checkout", json={"branch": "main"})
+_, m = call("POST", "/merge", json={"source": "hotfix"})
+expect(m.get("result") == "fast-forward", "main fast-forwards to hotfix")
+
+step("18. Overview numbers across the three databases")
+_, s = call("GET", "/stats")
+print(f"   commits {s['postgres']['commits']}, blobs {s['mongo']['blobs']}, dedup x{s['mongo']['dedup_ratio']}, "
+      f"neo4j nodes {sum(s['neo4j'].get('nodes', {}).values())}")
+expect(s["mongo"]["dedup_ratio"] and s["mongo"]["dedup_ratio"] > 1, "content addressing deduplicates record versions")
+
 print()
 if failures:
     print(f"\033[1;31m{len(failures)} check(s) failed\033[0m")
