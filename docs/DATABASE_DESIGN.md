@@ -5,9 +5,9 @@ and which DBMS concepts are demonstrated. It is the starting point for the proje
 
 | Database | Role | Concepts shown |
 |---|---|---|
-| **PostgreSQL 16** | Live bank data (`bank` schema) + version-control metadata (`vcs` schema) | ER modelling, 3NF, PK/FK/UNIQUE/CHECK constraints, indexes, triggers, stored procedures/functions, views, recursive CTEs, window functions, ACID transactions, row locking |
+| **PostgreSQL 16** | Live bank data (`bank` schema) + version-control metadata (`vcs` schema) + materialised snapshots (`snap_<commit>` schemas) | ER modelling, 3NF, PK/FK/UNIQUE/CHECK constraints, indexes, triggers, stored procedures/functions, views, recursive CTEs, window functions, ACID transactions, row locking, advisory locks, roles & privileges (GRANT/REVOKE), read-only transactions, JSONB |
 | **MongoDB 7** | Live KYC documents + content-addressed snapshot store (blobs, trees, proofs) | Schema-less documents, nested documents, content addressing (Git-style), bulk upserts, deduplication |
-| **Neo4j 5** | Commit DAG, record lineage, proof graph | Property graph model, uniqueness constraints, graph traversal, Cypher pattern matching |
+| **Neo4j 5** | Commit DAG, record lineage, proof graph, money-flow graph | Property graph model, uniqueness constraints, graph traversal, Cypher pattern matching, quantified path patterns (cycle detection) |
 
 ---
 
@@ -235,3 +235,79 @@ Order of writes in `commit`: blobs (Mongo, idempotent upserts) → manifest (Mon
 PostgreSQL transaction** (`sp_record_commit`) → Neo4j (best-effort). PostgreSQL is the source of
 truth: if it fails, the Mongo documents are unreferenced orphans (harmless); if Neo4j fails, the
 commit still succeeds and reports `graph_synced: false`.
+
+
+## 7. Branching and three-way merge
+
+`vcs.commit_parents` already models a DAG (`parent_order` 1 or 2), and `vcs.fn_merge_base` finds the
+lowest common ancestor with two recursive CTEs (`fn_ancestors` of both heads, joined, ordered by
+combined depth). `api/app/merge.py` then merges three *snapshots* (`{record_key: {column: value}}`):
+
+| base | ours | theirs | result |
+|---|---|---|---|
+| x | x | y | y (only they changed it) |
+| x | y | x | y (only we changed it) |
+| x | y | y | y (same change) |
+| x | y | z | **conflict** (resolved per `key|field` as ours / theirs) |
+| x | deleted | y | **record conflict** (delete vs modify) |
+
+Records changed on both sides are merged field by field, so two people editing *different columns*
+of the same row merge cleanly. The merged state is written through the same path as restore
+(`SET LOCAL ztdb.restoring = 'on'` bypasses the transaction state-machine trigger — history is
+authoritative) and committed with two parents; Neo4j draws both `:PARENT` edges. If `base == ours`
+the branch is fast-forwarded instead (no merge commit).
+
+## 8. Time-travel SQL console
+
+A commit's snapshot lives in MongoDB, but SQL users want to query it like a table. `sqlconsole.py`
+materialises a commit into a schema `snap_<commit_id>` (`CREATE TABLE … (LIKE bank.t INCLUDING DEFAULTS)`
+plus `kyc_documents (id TEXT, doc JSONB)` so the MongoDB data is queryable with JSONB operators), caches
+at most five such schemas (LRU via `vcs.snapshot_schemas.last_used`) and runs the user's query as the
+role `ztdb_reader` (`03_roles.sql`):
+
+* `LOGIN`, owns nothing, `NOSUPERUSER NOCREATEDB NOCREATEROLE`, `CONNECTION LIMIT 10`
+* `REVOKE ALL ON SCHEMA bank, vcs` — the live data and the metadata are invisible
+* `ALTER ROLE … SET default_transaction_read_only = on`, `statement_timeout = '3s'`
+* `GRANT USAGE` + `SELECT` only on each `snap_*` schema when it is created
+
+Defence in depth: the API accepts a single `SELECT`/`WITH` statement, opens a `READ ONLY` transaction,
+sets `search_path` to the snapshot, returns at most 500 rows, and always rolls back. Example (v1 vs v2):
+
+```sql
+SELECT status, count(*), sum(amount_paise)/100 AS inr FROM transactions GROUP BY status;
+SELECT doc->>'doc_type', avg((doc->>'risk_score')::int) FROM kyc_documents GROUP BY 1;
+```
+
+## 9. Neo4j money-flow graph and fraud rings
+
+The graph is not only for history. `analytics.py` builds, from any commit's snapshot,
+
+```
+(:Account {id, owner, status, branch})-[:SENT {txn_id, amount, status, at, channel}]->(:Account)
+(:MoneyFlow {commit})        // which commit the graph was built from (rebuilt on demand)
+```
+
+and searches for *layering rings* — money that returns to its origin through 3–5 large completed
+transfers within a time window:
+
+```cypher
+MATCH p = (a:Account) (()-[r:SENT WHERE r.amount >= $min AND r.status = 'COMPLETED']->()){3,5} (a)
+WITH p, a, relationships(p) AS rels, [n IN nodes(p) | n.id] AS ids
+WHERE a.id = reduce(m = a.id, x IN ids | CASE WHEN x < m THEN x ELSE m END)     // one rotation per ring
+...  WHERE duration.inSeconds(first, last).hours <= $hours
+```
+
+The quantified path pattern applies the edge predicate *during* expansion; the equivalent SQL would be a
+recursive CTE carrying a visited-path array — a good comparison for the viva. The seed data plants one
+ring of four accounts (each hop just under ₹2 lakh); compliance freezes them and the bank can then give
+a regulator a ZK proof that "account X was FROZEN at commit C" without revealing any balance.
+
+## 10. Concurrency and tamper-evidence beyond the database
+
+* **Advisory lock.** Commit, restore, checkout and merge rewrite whole tables, so they are serialised with
+  `pg_advisory_lock(72026101)` held on a dedicated connection (re-entrant per thread). This protects against
+  the web UI and the CLI acting at the same time; a second caller waits up to 15 s, then gets HTTP 409.
+* **External anchoring.** The anchor hash chain detects editing one commit, but a DBA could recompute the
+  whole chain. With `ZTDB_EXTERNAL_ANCHOR=file|github` every `{seq, commit_id, root, entry_hash}` is also
+  published outside the database (an append-only file or a commit to a GitHub repository). `verify` gains a
+  fifth layer and the auditor portal a fourth check comparing the anchor with the published copy.

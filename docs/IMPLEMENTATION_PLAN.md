@@ -1,5 +1,10 @@
 # ZK-TemporalDB — Status Review & Implementation Plan
 
+> **Update 19 Oct 2026 — plan executed on branch `main2`.** Every item below is implemented and committed
+> except cloud deployment (Phase 4.3, deliberately skipped: local only). Results: `demo_flow.py` 26/26,
+> pytest 35, web vitest 14, zk self-test passing. Local runs use the Docker-free portable setup in
+> `scripts/local/` because Docker is not installed. See HANDOFF.md for the current state.
+
 *Prepared 18 Oct 2026 for approval. Demo target: about 20 days out (around 7 Nov 2026).*
 *Basis: I read every tracked source file (37 files, about 2,350 lines of code and SQL), not just HANDOFF.md.*
 
