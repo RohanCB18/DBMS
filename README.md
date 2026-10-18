@@ -10,7 +10,7 @@ auditors, hospitals proving consent records, e-commerce price disputes, and lega
 
 **Status: feature-complete for the demo.** Backend, cryptography, the three databases, the web
 dashboard, the auditor portal, merge, time-travel SQL, fraud-ring analytics, CLI and external
-anchoring all work end-to-end (`api/scripts/demo_flow.py`: 26 checks). Cloud deployment is
+anchoring all work end-to-end (`api/scripts/demo_flow.py`: 24 checks). Cloud deployment is
 optional and not done — see [HANDOFF.md](HANDOFF.md).
 
 ## How it works
@@ -75,7 +75,7 @@ The SQL files in `db/postgres` run only on a fresh volume — after changing the
 
 ```bash
 cd api && .venv/Scripts/python -m pytest -q          # 35 unit tests (no databases needed)
-cd api && .venv/Scripts/python scripts/demo_flow.py   # end-to-end demo, 26 checks (stack running)
+cd api && .venv/Scripts/python scripts/demo_flow.py   # end-to-end demo, 24 checks (stack running)
 cd web && npm test                                   # browser claim encoding == zk-service encoding
 cd zk-service && npm test                            # circuit self-test (true/false claims)
 ```

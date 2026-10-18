@@ -1,7 +1,7 @@
 # ZK-TemporalDB — Status Review & Implementation Plan
 
 > **Update 19 Oct 2026 — plan executed on branch `main2`.** Every item below is implemented and committed
-> except cloud deployment (Phase 4.3, deliberately skipped: local only). Results: `demo_flow.py` 26/26,
+> except cloud deployment (Phase 4.3, deliberately skipped: local only). Results: `demo_flow.py` 24/24,
 > pytest 35, web vitest 14, zk self-test passing. Local runs use the Docker-free portable setup in
 > `scripts/local/` because Docker is not installed. See HANDOFF.md for the current state.
 

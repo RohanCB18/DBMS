@@ -12,7 +12,7 @@ It says what exists, how to run and present it, the traps already discovered, an
 
 | Check | Result |
 |---|---|
-| `python api/scripts/demo_flow.py` (end-to-end, stack running) | **26/26 checks pass** |
+| `python api/scripts/demo_flow.py` (end-to-end, stack running) | **24/24 checks pass** |
 | `pytest` in `api/` (no databases needed) | 35 passed |
 | `npm test` in `web/` (browser claim encoding == zk-service encoding) | 14 passed |
 | `npm test` in `zk-service/` (circuit: true claims prove, false claims cannot) | passes |
