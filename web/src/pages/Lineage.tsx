@@ -18,6 +18,16 @@ export default function Lineage() {
   const q = useQuery({ queryKey: ["lineage", key], queryFn: () => api.lineage(key) });
   const versions = q.data?.versions ?? [];
 
+  // Same key -> the URL does not change and the query would not re-run, so refetch explicitly
+  // (also picks up versions committed since the last trace).
+  const trace = (k: string) => {
+    const next = k.trim();
+    if (!next) return;
+    setInput(next);
+    if (next === key) q.refetch();
+    else setParams({ key: next });
+  };
+
   // field-level diff between consecutive versions
   const diffs = useQueries({
     queries: versions.slice(1).map((v, i) => ({
@@ -31,17 +41,23 @@ export default function Lineage() {
       <PageHeader title="Record lineage" icon={<Route className="h-7 w-7" />}
         subtitle="Every version of one record and the commit that introduced it — a single graph traversal in Neo4j: (:Record)-[:HAS_VERSION]->(:Version)-[:INTRODUCED_IN]->(:Commit)." />
       <Card>
-        <form className="flex flex-wrap gap-3" onSubmit={(e) => { e.preventDefault(); setParams({ key: input.trim() }); }}>
+        <form className="flex flex-wrap gap-3" onSubmit={(e) => { e.preventDefault(); trace(input); }}>
           <input className={inputCls + " max-w-md font-mono"} value={input} onChange={(e) => setInput(e.target.value)} placeholder="table:primary_key" />
-          <Button type="submit" variant="primary"><Search className="h-4 w-4" /> Trace</Button>
+          <Button type="submit" variant="primary" busy={q.isFetching}><Search className="h-4 w-4" /> Trace</Button>
           <div className="flex flex-wrap items-center gap-2">
-            {EXAMPLES.map((x) => <button key={x} type="button" onClick={() => { setInput(x); setParams({ key: x }); }}
+            {EXAMPLES.map((x) => <button key={x} type="button" onClick={() => trace(x)}
               className="rounded-lg border border-ink-600 px-2.5 py-1 font-mono text-xs text-slate-300 hover:bg-ink-800">{x}</button>)}
           </div>
         </form>
       </Card>
 
       <div className="mt-6">
+        {q.data && versions.length > 0 && (
+          <p className="mb-4 text-slate-300">
+            <span className="font-mono text-white">{key}</span>: {versions.length} version{versions.length > 1 ? "s" : ""}
+            {q.data.deleted_in.length > 0 && <>, deleted in {q.data.deleted_in.length} commit{q.data.deleted_in.length > 1 ? "s" : ""}</>}
+          </p>
+        )}
         {q.isLoading ? <Spinner /> : q.error ? <ErrorBox error={q.error} /> : !versions.length ? <Empty>No versions of <span className="font-mono">{key}</span> in the graph.</Empty> : (
           <ol className="relative ml-4 border-l-2 border-ink-600">
             {versions.map((v, i) => {
