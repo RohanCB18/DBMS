@@ -7,6 +7,8 @@
 # Logs go to .local\logs\, process ids to .local\pids\. Stop with scripts\local\stop.ps1.
 param([string[]]$Only = @('postgres', 'neo4j', 'zk', 'api', 'web'))
 $ErrorActionPreference = 'Stop'
+# `powershell -File start.ps1 -Only a,b` passes "a,b" as a single string
+$Only = $Only | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }
 
 $root  = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $local = Join-Path $root '.local'
@@ -15,8 +17,12 @@ $pids  = Join-Path $local 'pids'
 New-Item -ItemType Directory -Force $logs, $pids | Out-Null
 
 function Test-Port([int]$port) {
-    $c = New-Object Net.Sockets.TcpClient
-    try { $c.Connect('127.0.0.1', $port); return $true } catch { return $false } finally { $c.Close() }
+    # Check IPv4 and IPv6 loopback: some servers (e.g. Vite) bind only to ::1 on Windows
+    foreach ($addr in [Net.IPAddress]::Loopback, [Net.IPAddress]::IPv6Loopback) {
+        $c = New-Object Net.Sockets.TcpClient($addr.AddressFamily)
+        try { $c.Connect($addr, $port); return $true } catch { } finally { $c.Close() }
+    }
+    return $false
 }
 
 function Wait-Port([int]$port, [string]$name, [int]$seconds = 90) {
