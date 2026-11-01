@@ -104,6 +104,7 @@ export interface Stats {
 export const api = {
   status: () => request<Status>("GET", "/status"),
   stats: () => request<Stats>("GET", "/stats"),
+  zkHealth: () => request<unknown>("GET", "/vkey").then(() => true),
   commit: (message: string, author = "dashboard") => request<CommitResult>("POST", "/commit", { message, author }),
   log: (branch?: string, limit = 200) => request<Commit[]>("GET", "/log", undefined, { branch, limit }),
   diff: (a: string, b: string) => request<Diff>("GET", "/diff", undefined, { a, b }),

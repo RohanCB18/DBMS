@@ -17,12 +17,21 @@ type CommitNodeData = GraphData["nodes"][number] & { heads: string[]; color: str
 
 function CommitNode({ data }: NodeProps<Node<CommitNodeData>>) {
   return (
-    <div className="w-[300px] rounded-xl border bg-ink-850 px-3.5 py-2.5 text-left shadow-lg transition"
-      style={{ borderColor: data.selected ? data.color : "#2a3848", boxShadow: data.selected ? `0 0 0 2px ${data.color}55` : undefined }}>
+    <div className="relative w-[300px] overflow-hidden rounded-xl border px-3.5 py-2.5 pl-4 text-left backdrop-blur transition-all duration-300 hover:-translate-y-0.5"
+      style={{
+        borderColor: data.selected || data.isHead ? data.color : "rgba(255,255,255,0.09)",
+        background: `linear-gradient(135deg, ${data.color}${data.isHead ? "26" : "12"}, rgba(12,18,33,0.92) 55%)`,
+        boxShadow: data.selected ? `0 0 0 2px ${data.color}66, 0 12px 30px -10px ${data.color}88`
+          : data.isHead ? `0 10px 34px -12px ${data.color}aa` : "0 8px 24px -14px rgba(0,0,0,0.9)",
+      }}>
+      <span className="absolute inset-y-0 left-0 w-[3px]" style={{ background: data.color }} />
       <Handle type="target" position={Position.Bottom} className="!opacity-0" />
       <Handle type="source" position={Position.Top} className="!opacity-0" />
       <div className="flex items-center gap-2">
-        <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: data.color, outline: data.isHead ? `3px solid ${data.color}44` : undefined }} />
+        <span className="relative flex h-3 w-3 shrink-0">
+          {data.isHead && <span className="absolute inset-0 animate-pulse-ring rounded-full" style={{ background: data.color }} />}
+          <span className="relative h-3 w-3 rounded-full" style={{ background: data.color }} />
+        </span>
         <span className="font-mono text-[13px] text-amber-200/90">{data.id.slice(0, 10)}</span>
         <span className="text-xs text-slate-500">{data.label}</span>
         {data.merge && <span className="rounded bg-violet-400/15 px-1.5 text-[11px] text-violet-300">merge</span>}
@@ -69,7 +78,8 @@ export default function HistoryPage() {
     const colorOf = Object.fromEntries(nodes.map((n) => [n.id, n.data.color]));
     const edges: Edge[] = g.edges.map((e) => ({
       id: `${e.from}-${e.to}`, source: e.to, target: e.from, type: "smoothstep",
-      style: { stroke: colorOf[e.from], strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: colorOf[e.from] },
+      animated: e.from === status.data?.head,
+      style: { stroke: colorOf[e.from], strokeWidth: 2, opacity: 0.85 }, markerEnd: { type: MarkerType.ArrowClosed, color: colorOf[e.from] },
     }));
     return { nodes, edges };
   }, [graph.data, labels, selected, status.data?.head]);
@@ -86,7 +96,7 @@ export default function HistoryPage() {
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.2, maxZoom: 1.1 }}
               minZoom={0.2} nodesDraggable={false} nodesConnectable={false} proOptions={{ hideAttribution: true }}
               onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)}>
-              <Background color="#1c2735" gap={22} />
+              <Background color="#28334d" gap={24} size={1.2} />
               <Controls showInteractive={false} />
             </ReactFlow>
           )}
@@ -110,7 +120,7 @@ function CommitPanel({ id, log, graph, label, onClose }: { id: string; log: any[
 
   return (
     <motion.aside initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 40, opacity: 0 }}
-      className="absolute right-4 top-4 bottom-4 z-10 w-[420px] overflow-y-auto rounded-2xl border border-ink-600 bg-ink-900/95 p-5 shadow-2xl backdrop-blur">
+      className="glow-border absolute right-4 top-4 bottom-4 z-10 w-[420px] overflow-y-auto rounded-2xl border border-white/10 bg-ink-900/90 p-5 shadow-2xl backdrop-blur-xl">
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs uppercase tracking-wider text-slate-500">commit {label}</div>

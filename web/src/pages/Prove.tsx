@@ -67,7 +67,7 @@ export default function Prove() {
               <div className="flex gap-2">
                 {(["eq", "gte", "lte"] as const).map((o) => (
                   <button key={o} disabled={o !== "eq" && !numeric} onClick={() => setOp(o)}
-                    className={`flex-1 rounded-xl border py-2.5 text-lg transition disabled:opacity-30 ${op === o ? "border-ok/60 bg-ok/10 text-ok" : "border-ink-600 text-slate-300 hover:bg-ink-800"}`}>{opText[o]}</button>
+                    className={`flex-1 rounded-xl border py-2.5 text-lg font-semibold transition disabled:opacity-30 ${op === o ? "border-ok/60 bg-ok/15 text-ok shadow-[0_0_20px_-6px_rgba(52,211,153,0.6)]" : "border-white/10 bg-white/[0.02] text-slate-300 hover:bg-white/[0.06]"}`}>{opText[o]}</button>
                 ))}
               </div>
             </Field>
@@ -88,12 +88,12 @@ export default function Prove() {
         <Card title="What the prover knows vs what the auditor will learn">
           {rec.data ? (
             <div className="space-y-4">
-              <div className="rounded-xl border border-ok/30 bg-ok/[0.06] p-4">
+              <div className="rounded-xl border border-ok/30 bg-gradient-to-br from-ok/[0.1] to-transparent p-4 shadow-[0_0_30px_-14px_rgba(52,211,153,0.6)]">
                 <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-ok"><Eye className="h-4 w-4" /> revealed (the claim only)</div>
                 <div className="font-mono text-lg text-white">{table} #{pk}: {field} {opText[op]} {field.endsWith("_paise") && /^\d+$/.test(value) ? cell(field, Number(value)) : value}</div>
                 <div className="mt-1 text-sm text-slate-400">in commit {labels[ref]} <Hash value={ref} head={10} tail={0} /></div>
               </div>
-              <div className="rounded-xl border border-ink-600 bg-ink-850 p-4">
+              <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
                 <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-400"><EyeOff className="h-4 w-4" /> stays hidden</div>
                 <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-[15px]">
                   {op !== "eq" && <li className="text-slate-500">exact <b>{field}</b> value: <span className="blur-sm">{cell(field, rec.data.record[field])}</span></li>}
@@ -109,10 +109,13 @@ export default function Prove() {
 
       {pkg && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-5">
-          <Card title="Proof package" className="border-ok/40">
-            <div className="flex flex-wrap items-center gap-6">
-              <div className="text-2xl font-semibold text-white">{pkg.claim_text}</div>
-              <Badge tone="ok">valid Groth16 proof</Badge>
+          <Card title="Proof package" glow className="overflow-hidden">
+            <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-ok/20 blur-3xl" />
+            <div className="relative flex flex-wrap items-center gap-4">
+              <motion.span initial={{ scale: 0.4, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-ok to-brand-cyan text-ink-950 shadow-glow"><KeyRound className="h-6 w-6" /></motion.span>
+              <div className="font-display text-2xl font-semibold text-white">{pkg.claim_text}</div>
+              <Badge tone="ok" dot>valid Groth16 proof</Badge>
             </div>
             <div className="mt-4 grid gap-4 text-[15px] md:grid-cols-4">
               <Metric k="proof size" v={`${new Blob([JSON.stringify(pkg.proof)]).size} bytes`} />
@@ -123,7 +126,7 @@ export default function Prove() {
             <div className="mt-5 flex flex-wrap gap-3">
               <Button variant="primary" onClick={() => downloadJson(pkg, `proof-${pkg.proof_id}.json`)}><Download className="h-4 w-4" /> Download package (.json)</Button>
               <a href={`/audit?proof=${pkg.proof_id}`} target="_blank" rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border border-sky-400/40 bg-sky-400/10 px-4 py-2.5 text-[15px] text-sky-200 hover:bg-sky-400/20">
+                className="inline-flex items-center gap-2 rounded-xl border border-sky-400/40 bg-gradient-to-r from-sky-400/15 to-brand-violet/10 px-4 py-2.5 text-[15px] text-sky-100 shadow-glow-cyan transition hover:brightness-125">
                 <ExternalLink className="h-4 w-4" /> Open in auditor portal
               </a>
             </div>
@@ -149,5 +152,5 @@ export default function Prove() {
 }
 
 function Metric({ k, v }: { k: string; v: React.ReactNode }) {
-  return <div className="rounded-xl bg-ink-850 px-4 py-3"><div className="text-sm text-slate-400">{k}</div><div className="mt-1 text-lg text-white">{v}</div></div>;
+  return <div className="relative rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3"><div className="text-xs uppercase tracking-wide text-slate-500">{k}</div><div className="mt-1 font-display text-lg text-white">{v}</div></div>;
 }
