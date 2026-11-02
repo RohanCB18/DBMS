@@ -9,8 +9,8 @@ data looked like, without exposing everything?"* — useful for banks proving ol
 auditors, hospitals proving consent records, e-commerce price disputes, and legal evidence.
 
 **Status: feature-complete for the demo.** Backend, cryptography, the three databases, the web
-dashboard, the auditor portal, merge, time-travel SQL, fraud-ring analytics, CLI and external
-anchoring all work end-to-end (`api/scripts/demo_flow.py`: 24 checks). Cloud deployment is
+dashboard, the auditor portal, merge, live and time-travel SQL, fraud-ring analytics, CLI and external
+anchoring all work end-to-end (`api/scripts/demo_flow.py`: 29 checks). Cloud deployment is
 optional and not done — see [HANDOFF.md](HANDOFF.md).
 
 ## How it works
@@ -41,8 +41,9 @@ optional and not done — see [HANDOFF.md](HANDOFF.md).
    records and (for ranges) the value itself. Proofs are ~720 bytes and verify in milliseconds.
 5. **Branch & merge** — three-way, record- and field-level merge with conflict resolution;
    merge commits have two parents.
-6. **Time-travel SQL** — any commit can be materialised into its own schema and queried with
-   ordinary `SELECT`s by a read-only role.
+6. **SQL console** — change the *working* bank data with ordinary `INSERT` / `UPDATE` / `DELETE`
+   (or the bank's stored procedures) as a least-privilege role, then commit it; or materialise any
+   past commit into its own schema and query it with `SELECT`s as a read-only role.
 7. **Graph analytics** — Neo4j finds money-laundering rings in a commit's transactions.
 
 ## Quick start — Windows, no Docker (portable databases)
@@ -74,8 +75,8 @@ The SQL files in `db/postgres` run only on a fresh volume — after changing the
 ## Testing
 
 ```bash
-cd api && .venv/Scripts/python -m pytest -q          # 35 unit tests (no databases needed)
-cd api && .venv/Scripts/python scripts/demo_flow.py   # end-to-end demo, 24 checks (stack running)
+cd api && .venv/Scripts/python -m pytest -q          # 58 unit tests (no databases needed)
+cd api && .venv/Scripts/python scripts/demo_flow.py   # end-to-end demo, 29 checks (stack running)
 cd web && npm test                                   # browser claim encoding == zk-service encoding
 cd zk-service && npm test                            # circuit self-test (true/false claims)
 ```
@@ -96,6 +97,7 @@ python cli.py prove --table transactions --pk 100600 --field status --value COMP
 python cli.py audit proof.json
 python cli.py merge audit-fix --resolve "customers:7|phone=theirs"
 python cli.py sql main "SELECT status, count(*) FROM transactions GROUP BY status"
+python cli.py exec "UPDATE customers SET phone = '9811100007' WHERE customer_id = 7" [--preview]
 python cli.py rings
 ```
 
@@ -114,11 +116,11 @@ python cli.py rings
 circuits/       record_claim.circom + build.mjs (compile + Groth16 trusted setup)
 zk-service/     Node: Poseidon Merkle tree, prove/verify; artifacts/ = wasm, zkey, verification key
 api/app/        FastAPI: vcs.py (commit/diff/restore/merge/verify), merge.py (3-way merge), proofs.py,
-                sqlconsole.py (time-travel SQL), analytics.py + graph.py (Neo4j), anchoring.py,
+                sqlconsole.py (time-travel SQL), livesql.py (live SQL edits), analytics.py + graph.py (Neo4j), anchoring.py,
                 stats.py, demo.py, canonical.py
 api/cli.py      ztdb command-line client
 api/tests/      pytest unit tests;  api/scripts/demo_flow.py = end-to-end demo & integration test
-db/postgres/    01_bank_schema.sql, 02_vcs_schema.sql, 03_roles.sql
+db/postgres/    01_bank_schema.sql, 02_vcs_schema.sql, 03_roles.sql, 04_live_sql.sql
 web/            React dashboard + auditor portal (Vite, TypeScript, Tailwind)
 scripts/local/  setup/start/stop the stack without Docker (Windows)
 docs/           DATABASE_DESIGN.md, IMPLEMENTATION_PLAN.md
@@ -139,6 +141,7 @@ HANDOFF.md      demo script, gotchas, known limitations, what is left (deploymen
 | POST | `/api/restore` | `{ref, force, move_head}` reset live DB to any commit (optionally move the branch) |
 | POST | `/api/merge` | `{source, resolutions?, dry_run?}` three-way merge; 409 + conflict list |
 | POST | `/api/sql` | `{ref, query}` read-only SELECT against a past commit |
+| POST | `/api/sql/live` | `{query, preview?, allow_full_table?}` INSERT / UPDATE / DELETE / SELECT on the working bank tables |
 | POST | `/api/verify/{ref}` · GET `/api/verify-runs` | integrity check / history |
 | GET | `/api/anchors` · `/api/anchors/external` | the transparency log / external publication |
 | POST | `/api/proofs` · GET `/api/proofs[/{id}]` | `{ref, table, pk, field, op: eq/gte/lte, value}` → ZK proof package |

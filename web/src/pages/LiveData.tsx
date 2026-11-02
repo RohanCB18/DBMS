@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Table2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, PenLine, Table2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { api, TABLES } from "../lib/api";
 import { Badge, Button, Card, ErrorBox, PageHeader, Spinner, cx } from "../components/ui";
 import { RecordTable } from "../components/RecordTable";
@@ -26,6 +27,8 @@ export default function LiveData() {
   return (
     <>
       <PageHeader title="Live data" icon={<Table2 className="h-7 w-7" />}
+        actions={<Link to="/sql?mode=live" className="inline-flex items-center gap-2 rounded-xl border border-amber-300/30 bg-amber-300/10 px-4 py-2.5 text-[15px] text-amber-100 transition hover:bg-amber-300/20">
+          <PenLine className="h-4 w-4" /> Edit with SQL</Link>}
         subtitle="The working databases right now. Rows changed since HEAD are highlighted: green = added, amber = modified." />
       <div className="mb-4 flex flex-wrap gap-2">
         {TABLES.map((t) => {

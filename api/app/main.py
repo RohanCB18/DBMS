@@ -10,11 +10,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from . import analytics, anchoring, config, demo, graph, proofs, sqlconsole, stats, vcs, zk
+from .canonical import SQL_TABLES
+from . import analytics, anchoring, config, demo, graph, livesql, proofs, sqlconsole, stats, vcs, zk
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    try:
+        livesql.ensure_role()       # existing databases get the ztdb_writer role without a rebuild
+    except Exception as e:  # noqa: BLE001 — report on use instead of refusing to start
+        print(f"warning: could not apply 04_live_sql.sql: {e}")
     try:
         graph.ensure_schema()
     except Exception:  # noqa: BLE001 — neo4j may still be booting; constraints are re-ensured on reset
@@ -52,12 +57,23 @@ def _raised(_req: Request, e: psycopg.Error):   # business rules raised by trigg
     return JSONResponse(status_code=400, content={"error": _pg_message(e)})
 
 
+def _check_token(x_admin_token: str | None):
+    if config.ADMIN_TOKEN and not secrets.compare_digest(x_admin_token or "", config.ADMIN_TOKEN):
+        raise vcs.VcsError("missing or wrong X-Admin-Token header", 401)
+
+
+def live_sql_guard(x_admin_token: str | None = Header(default=None)):
+    """Writing live data with SQL: on unless ZTDB_LIVE_SQL=off; needs the admin token when one is set."""
+    if not config.LIVE_SQL:
+        raise vcs.VcsError("the live SQL console is disabled on this server (ZTDB_LIVE_SQL=off)", 403)
+    _check_token(x_admin_token)
+
+
 def demo_guard(x_admin_token: str | None = Header(default=None)):
     """Demo controls can wipe and tamper with the database: off unless ZTDB_DEMO_MODE is on."""
     if not config.DEMO_MODE:
         raise vcs.VcsError("demo controls are disabled on this server (ZTDB_DEMO_MODE=off)", 403)
-    if config.ADMIN_TOKEN and not secrets.compare_digest(x_admin_token or "", config.ADMIN_TOKEN):
-        raise vcs.VcsError("missing or wrong X-Admin-Token header", 401)
+    _check_token(x_admin_token)
 
 
 # ------------------------------------------------------------------ models
@@ -95,6 +111,12 @@ class MergeIn(BaseModel):
 class SqlIn(BaseModel):
     ref: str = Field(description="commit id, prefix or branch name to query 'as of'")
     query: str = Field(min_length=1, max_length=5000)
+
+
+class LiveSqlIn(BaseModel):
+    query: str = Field(min_length=1, max_length=5000)
+    preview: bool = Field(False, description="execute, report what would change, then roll back")
+    allow_full_table: bool = Field(False, description="permit UPDATE / DELETE without WHERE")
 
 
 class ProofIn(BaseModel):
@@ -189,6 +211,17 @@ def merge(body: MergeIn):
 @app.post("/api/sql")
 def time_travel_sql(body: SqlIn):
     return JSONResponse(jsonable_encoder(sqlconsole.run(body.ref, body.query)))
+
+
+@app.post("/api/sql/live", dependencies=[Depends(live_sql_guard)])
+def live_sql(body: LiveSqlIn):
+    return JSONResponse(jsonable_encoder(livesql.run(body.query, body.preview, body.allow_full_table)))
+
+
+@app.get("/api/sql/live/config")
+def live_sql_config():
+    return {"enabled": config.LIVE_SQL, "token_required": bool(config.ADMIN_TOKEN),
+            "max_affected": livesql.MAX_AFFECTED, "tables": list(SQL_TABLES)}
 
 
 @app.get("/api/stats")

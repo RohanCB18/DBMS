@@ -335,7 +335,8 @@ only the one claim. Showing both side by side explains why ZK matters.
 | **Diff** | compare two manifests: records whose blob id differs changed; only those are opened and compared field by field. Can also compare a commit with the live database (`WORKING`) | Diff |
 | **Time travel** | read a commit's manifest and blobs → show the old data. Read-only | Time travel |
 | **Record lineage** | a Neo4j path query: `(Record)-[:HAS_VERSION]->(Version)-[:INTRODUCED_IN]->(Commit)` | Record lineage |
-| **SQL console** | the commit's data is copied into its own PostgreSQL schema `snap_<commit>` (the last 5 are kept); your `SELECT` runs there as the read-only user `ztdb_reader`, inside a READ ONLY transaction with a 3-second limit and at most 500 rows | SQL console |
+| **SQL console — live database** | your `INSERT` / `UPDATE` / `DELETE` (or `SELECT sp_transfer(...)`) runs on the *working* bank tables as `ztdb_writer` (bank tables only, no DDL, no history access; constraints and triggers still apply). *Preview* runs it and rolls back. The change is an uncommitted change, like a business day, until you commit | SQL console |
+| **SQL console — time travel** | the commit's data is copied into its own PostgreSQL schema `snap_<commit>` (the last 5 are kept); your `SELECT` runs there as the read-only user `ztdb_reader`, inside a READ ONLY transaction with a 3-second limit and at most 500 rows | SQL console |
 
 ---
 
@@ -424,7 +425,7 @@ to a regulator.
 * **CLI** (`api/cli.py`): the same features in a terminal — `status`, `commit -m`, `log`, `diff`,
   `branch`, `checkout`, `restore`, `merge`, `verify`, `prove`, `audit`, `sql`, `rings`, `stats`.
 * **Tests:** 35 Python unit tests (`api/tests/`), 14 browser-encoding tests (`web/`), the circuit
-  self-test (`zk-service/test/`), and `api/scripts/demo_flow.py` — the full demo with 24 checks.
+  self-test (`zk-service/test/`), and `api/scripts/demo_flow.py` — the full demo with 29 checks.
   GitHub Actions (`.github/workflows/ci.yml`) runs them on every push.
 * **Safety:** commit/restore/merge take a database lock so two can't run at once; demo buttons
   can be switched off or protected with a token (`.env`).

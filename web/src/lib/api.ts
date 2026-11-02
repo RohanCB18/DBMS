@@ -87,6 +87,11 @@ export interface SqlResult {
   commit_id: string; schema: string; columns: string[]; rows: any[][]; truncated: boolean;
   row_count: number; materialise_ms: number; query_ms: number; tables: string[];
 }
+export interface LiveSqlResult {
+  kind: "select" | "with" | "insert" | "update" | "delete"; preview: boolean; applied: boolean;
+  affected: number | null; columns: string[]; rows: any[][]; truncated: boolean; row_count: number; elapsed_ms: number;
+  status: Pick<Status, "branch" | "head" | "clean" | "added" | "modified" | "deleted">;
+}
 export interface Ring {
   accounts: number[]; owners: string[]; statuses: string[];
   transfers: { txn_id: number; from: number; to: number; amount: number; at: string }[];
@@ -133,6 +138,9 @@ export const api = {
   lineage: (key: string) => request<Lineage>("GET", `/graph/records/${encodeURIComponent(key)}`),
   live: (table: string, limit = 100, offset = 0) => request<{ table: string; total: number; rows: Record<string, any>[] }>("GET", `/live/${table}`, undefined, { limit, offset }),
   sql: (ref: string, query: string) => request<SqlResult>("POST", "/sql", { ref, query }),
+  liveSql: (query: string, preview = false, allow_full_table = false) =>
+    request<LiveSqlResult>("POST", "/sql/live", { query, preview, allow_full_table }),
+  liveSqlConfig: () => request<{ enabled: boolean; token_required: boolean; max_affected: number; tables: string[] }>("GET", "/sql/live/config"),
   rings: (ref = "HEAD", min_amount_inr = 100000, max_hours = 24) =>
     request<{ commit_id: string; rings: Ring[]; graph: any; cypher: string }>("GET", "/graph/fraud-rings", undefined, { ref, min_amount_inr, max_hours }),
   demoConfig: () => request<{ demo_mode: boolean; token_required: boolean }>("GET", "/demo/config"),

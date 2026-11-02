@@ -311,3 +311,29 @@ a regulator a ZK proof that "account X was FROZEN at commit C" without revealing
   whole chain. With `ZTDB_EXTERNAL_ANCHOR=file|github` every `{seq, commit_id, root, entry_hash}` is also
   published outside the database (an append-only file or a commit to a GitHub repository). `verify` gains a
   fifth layer and the auditor portal a fourth check comparing the anchor with the published copy.
+
+## 11. Live SQL console — editing the working data by hand
+
+Besides the scripted business day, the working bank data can be changed with ordinary SQL from the
+dashboard (*SQL console → Live database*), the CLI (`python cli.py exec "..."`) or `POST /api/sql/live`.
+The change is then an uncommitted change like any other; a commit snapshots, anchors and makes it provable.
+
+The statements run as the role `ztdb_writer` (`04_live_sql.sql`, also applied by the API at startup):
+
+| Privilege | Granted |
+|---|---|
+| `SELECT, INSERT, UPDATE, DELETE` on `bank.*` tables and views | yes |
+| `USAGE` on `bank.txn_id_seq`; `EXECUTE` on `sp_transfer`, `sp_settle_txn`, `sp_reverse_txn` | yes |
+| `TRUNCATE`, DDL (`CREATE` / `ALTER` / `DROP`), anything in schema `vcs` | **no** |
+| session settings | `statement_timeout = 5s`, `idle_in_transaction_session_timeout = 10s` |
+
+Because the writer cannot touch `vcs`, the audit trigger `vcs.fn_audit_row` is `SECURITY DEFINER` with a
+pinned `search_path` (it runs with its owner's rights) and records `session_user`, so the change log shows
+`ztdb_writer` as the author of hand-made edits.
+
+Integrity is unchanged: CHECK constraints (`balance_paise >= 0`, enums), foreign keys and the transaction
+state-machine trigger reject invalid edits (e.g. `COMPLETED → PENDING`) and nothing is written. On top of the
+role, the API accepts one statement at a time (SELECT / WITH / INSERT / UPDATE / DELETE), requires a WHERE
+clause for UPDATE / DELETE unless a whole-table change is confirmed, rolls back statements that would change
+more than 1000 rows, offers a *preview* that executes and rolls back, and holds the version-control advisory
+lock so a commit never snapshots a half-applied change.

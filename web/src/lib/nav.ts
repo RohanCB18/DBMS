@@ -27,7 +27,7 @@ export const NAV: NavSection[] = [
     { to: "/prove", label: "Prove", icon: KeyRound, blurb: "Groth16 proof of one historical fact" },
   ] },
   { title: "Analytics", items: [
-    { to: "/sql", label: "SQL console", icon: Terminal, blurb: "SELECT on any past commit" },
+    { to: "/sql", label: "SQL console", icon: Terminal, blurb: "edit live data with SQL, or query any past commit" },
     { to: "/fraud", label: "Fraud rings", icon: Network, blurb: "money cycles found with Cypher" },
   ] },
 ];

@@ -12,6 +12,7 @@
     python cli.py prove --ref main --table transactions --pk 100600 --field status --op eq --value COMPLETED -o proof.json
     python cli.py audit proof.json
     python cli.py sql REF "SELECT status, count(*) FROM transactions GROUP BY status"
+    python cli.py exec "UPDATE customers SET phone = '9811100007' WHERE customer_id = 7" [--preview]
     python cli.py rings
     python cli.py stats
     python cli.py demo reset | business-day | tamper blob|root|undo | scenario clean|conflict
@@ -232,6 +233,25 @@ def sql(ref: str, query: str):
         t.add_row(*[str(x) for x in row])
     con.print(t)
     con.print(f"{r['row_count']} rows{' (truncated)' if r['truncated'] else ''}, {r['query_ms']} ms")
+
+
+@app.command("exec")
+def exec_sql(statement: str, preview: bool = typer.Option(False, "--preview", help="run, show the effect, roll back"),
+             all_rows: bool = typer.Option(False, "--all-rows", help="allow UPDATE / DELETE without WHERE")):
+    """Change the working bank data with one SQL statement (INSERT / UPDATE / DELETE / SELECT sp_...)."""
+    _, r = call("POST", "/sql/live", json={"query": statement, "preview": preview, "allow_full_table": all_rows})
+    if r["columns"]:
+        t = Table(*r["columns"])
+        for row in r["rows"]:
+            t.add_row(*[str(x) for x in row])
+        con.print(t)
+    if r["affected"] is not None:
+        verb = "would change" if r["preview"] else "changed"
+        con.print(f"[{'cyan' if r['preview'] else 'green'}]{r['affected']} row(s) {verb}[/]"
+                  + (" — rolled back" if r["preview"] else ""))
+    st = r["status"]
+    n = len(st["added"]) + len(st["modified"]) + len(st["deleted"])
+    con.print(f"working database: {'clean' if st['clean'] else f'{n} uncommitted record change(s) — python cli.py commit -m ...'}")
 
 
 @app.command()

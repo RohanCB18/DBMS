@@ -351,6 +351,7 @@ change_log        ( change_id     BIGSERIAL    PRIMARY KEY,
 | `vcs.fn_verify_anchor_chain` | function (window function `LAG`) | re-checks every link of the hash chain |
 | `bank.v_account_summary`, `vcs.v_commit_log` | views | reporting |
 | `ztdb_reader` | role | read-only user for the time-travel SQL console |
+| `ztdb_writer` | role | DML-only user for the live SQL console (bank tables + stored procedures, no `vcs`) |
 
 ---
 

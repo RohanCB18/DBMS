@@ -52,6 +52,8 @@ services:
     environment:
       PG_DSN: postgresql://ztdb:${POSTGRES_PASSWORD:-ztdb}@postgres:5432/ztdb
       PG_READER_DSN: postgresql://ztdb_reader:ztdb_reader@postgres:5432/ztdb
+      PG_WRITER_DSN: postgresql://ztdb_writer:ztdb_writer@postgres:5432/ztdb
+      ZTDB_LIVE_SQL: ${ZTDB_LIVE_SQL:-on}
       MONGO_URI: mongodb://mongo:27017
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j

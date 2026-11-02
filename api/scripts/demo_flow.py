@@ -177,6 +177,21 @@ print(f"   commits {s['postgres']['commits']}, blobs {s['mongo']['blobs']}, dedu
       f"neo4j nodes {sum(s['neo4j'].get('nodes', {}).values())}")
 expect(s["mongo"]["dedup_ratio"] and s["mongo"]["dedup_ratio"] > 1, "content addressing deduplicates record versions")
 
+step("19. Live SQL: change the working data by hand, then commit it")
+code, pv = call("POST", "/sql/live", json={"query": "UPDATE customers SET phone = '9811100007' WHERE customer_id = 7 RETURNING phone",
+                                         "preview": True})
+expect(code == 200 and pv["affected"] == 1 and pv["status"]["clean"], "preview reports the change and writes nothing")
+code, lv = call("POST", "/sql/live", json={"query": "UPDATE customers SET phone = '9811100007' WHERE customer_id = 7"})
+expect(code == 200 and "customers:7" in lv["status"]["modified"], "the edit shows up as an uncommitted change")
+code, _ = call("POST", "/sql/live", json={"query": "UPDATE transactions SET status = 'PENDING' WHERE txn_id = 100001"})
+expect(code == 400, "business-rule trigger still applies to hand-written SQL")
+code, _ = call("POST", "/sql/live", json={"query": "DELETE FROM vcs.anchors WHERE seq = 1"})
+expect(code == 403, "the live console cannot touch version-control history")
+_, cm = call("POST", "/commit", json={"message": "Manual phone correction", "author": "sql-console"})
+_, d = call("GET", "/diff", params={"a": cm["parents"][0], "b": cm["commit_id"]})
+print(f"   commit {cm['commit_id']}: {d['summary']}")
+expect([m["key"] for m in d["modified"]] == ["customers:7"], "the commit contains exactly the hand-made change")
+
 print()
 if failures:
     print(f"\033[1;31m{len(failures)} check(s) failed\033[0m")

@@ -169,6 +169,19 @@ Now type `DELETE FROM transactions` and run it → **refused**.
 (`snap_<commit id>`), and your query runs there as a special user `ztdb_reader` that is only
 allowed to *read*, inside a read-only transaction with a 3-second time limit.
 
+### Step 7b — Change the data yourself with SQL (SQL console → Live database)
+**Click:** **SQL console** → tab **Live database** → example **Correct a phone number** → **Preview**,
+then **Execute**. In *Uncommitted changes* type a message and click **Commit**.
+
+**You will see:** Preview shows the row that *would* change and writes nothing; Execute applies it and
+`customers:7` appears as an uncommitted change; Commit turns it into a new version (check **Diff**).
+Try the example **Blocked: break a business rule** → refused by the database trigger.
+
+**Behind the scenes:** the statement runs as the user `ztdb_writer`, which may only INSERT / UPDATE /
+DELETE the four bank tables and call the bank's stored procedures — no DDL, no TRUNCATE, no access to
+commits or anchors. All constraints and triggers still apply, and the audit trigger logs the change.
+UPDATE / DELETE need a WHERE clause; at most 1000 rows per statement. CLI: `python cli.py exec "..."`.
+
 ### Step 8 — Check nobody changed history (Verify page)
 **Click:** **Verify** in the sidebar → choose **v2** in the list → click the **Verify** button.
 
@@ -313,7 +326,7 @@ cd api; .venv\Scripts\python cli.py log; cd ..
 cd api; .venv\Scripts\python cli.py verify main; cd ..
 ```
 
-**Automatic check of everything** (runs the whole demo with 24 checks in ~1 minute;
+**Automatic check of everything** (runs the whole demo with 29 checks in ~1 minute;
 it resets the data first):
 ```bash
 cd api; .venv\Scripts\python scripts\demo_flow.py; cd ..
@@ -342,5 +355,5 @@ the SQL files), use `docker compose down -v` instead of `stop` — then click **
 | Docker Desktop crashes with "dockerInference" | Quit Docker, rename `%LOCALAPPDATA%\Docker\run` to `run_old`, restart it; turn off Settings → AI → Docker Model Runner |
 | Dashboard shows network errors | The API is not running — run `start.ps1` again and look at `.local\logs\api.err.log` |
 | "Generate proof" fails | zk-service is not running — check `.local\logs\zk.err.log` |
-| SQL console says permission/role error | The database was created before `03_roles.sql` existed: `docker compose down -v`, `docker compose up -d postgres mongo neo4j`, then **Reset demo** |
+| SQL console says permission/role error | Live tab: restart the API (it applies `04_live_sql.sql` at startup). Time-travel tab: the database was created before `03_roles.sql` existed: `docker compose down -v`, `docker compose up -d postgres mongo neo4j`, then **Reset demo** |
 | Merge scenario says "commit or discard the uncommitted changes first" | Go to Overview and **Commit** first |

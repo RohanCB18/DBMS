@@ -12,8 +12,8 @@ It says what exists, how to run and present it, the traps already discovered, an
 
 | Check | Result |
 |---|---|
-| `python api/scripts/demo_flow.py` (end-to-end, stack running) | **24/24 checks pass** |
-| `pytest` in `api/` (no databases needed) | 35 passed |
+| `python api/scripts/demo_flow.py` (end-to-end, stack running) | **29/29 checks pass** |
+| `pytest` in `api/` (no databases needed) | 58 passed |
 | `npm test` in `web/` (browser claim encoding == zk-service encoding) | 14 passed |
 | `npm test` in `zk-service/` (circuit: true claims prove, false claims cannot) | passes |
 | Web UI walked through in a browser: prove → auditor portal (browser verification) → forged claim rejected; tamper → verify red; merge with conflict resolution; SQL; fraud ring | works |
@@ -57,7 +57,9 @@ Start: `scripts\local\start.ps1` (or `docker compose up -d`), open http://localh
 2. **Run a business day → Commit** — stored procedures settle txn **#100600** (₹2,50,000 property advance)
    PENDING→COMPLETED, new transfers, a reversal, an account frozen, a KYC doc verified in MongoDB.
 3. **Diff** v1 → v2 · **Record lineage** of `transactions:100600` (Neo4j) · **Time travel** to v1 ·
-   **SQL console**: "Transactions by status" on v1 vs v2 side by side; try `DELETE` → refused.
+   **SQL console → Time travel**: "Transactions by status" on v1 vs v2 side by side; try `DELETE` → refused.
+   **SQL console → Live database**: *Correct a phone number* → Preview (rolled back) → Execute → it appears
+   under *Uncommitted changes* → Commit. Then *Blocked: break a business rule* → the trigger refuses it.
 4. **Verify** v2 → all green. **Tamper lab** → edit #100600 in MongoDB → *Verify HEAD now* → red, pinpointed.
    Undo. Rewrite root in Postgres → trigger blocks it → attacker disables trigger → anchor chain catches it. Undo.
 5. **Prove** "txn 100600 status = COMPLETED" (and `amount_paise ≥ 20000000`) → *Open in auditor portal*
@@ -108,8 +110,9 @@ The CLI (`python api/cli.py …`) can show the same story in a terminal next to 
   in after the Postgres commit; commit writes Mongo first and Postgres is the source of truth (orphans are harmless).
 * Merge is state-based (snapshots), not operation-based: a merged state can violate cross-record invariants
   (e.g. balances vs. transactions) even when there is no field conflict. Constraint violations abort the merge (409).
-* The SQL console's statement check is basic; the real enforcement is the read-only role, READ ONLY transaction
-  and statement timeout. Snapshot schemas omit constraints and views.
+* The SQL consoles' statement checks are basic; the real enforcement is the database roles (`ztdb_reader`
+  read-only on snapshots, `ztdb_writer` DML on the bank tables only), READ ONLY transactions and timeouts.
+  The live console edits PostgreSQL only — KYC documents in MongoDB are not editable with SQL. Snapshot schemas omit constraints and views.
 * Salted leaves hide low-entropy fields; the salt is stored with the blob, so whoever controls the blob store
   can always open the commitment (intended — they are the data owner).
 * The anchor chain stops single-row edits; rewriting the *whole* chain needs external anchoring to detect.
