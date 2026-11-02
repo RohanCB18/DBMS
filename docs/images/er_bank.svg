@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1380" height="800" viewBox="0 0 1380 800" font-family="Arial, Helvetica, sans-serif">
+<rect width="1380" height="800" fill="#ffffff"/>
+<text x="30" y="40" font-size="22" font-weight="bold" fill="#111">Figure 1 - ER diagram: banking domain (schema bank)</text>
+<text x="30" y="64" font-size="14" fill="#555">The live business data that ZK-TemporalDB versions. Foreign keys are not drawn as attributes in an ER diagram.</text>
+<line x1="420" y1="130" x2="640" y2="190" stroke="#444" stroke-width="1.2"/>
+<line x1="500" y1="95" x2="640" y2="190" stroke="#444" stroke-width="1.2"/>
+<line x1="640" y1="95" x2="640" y2="190" stroke="#444" stroke-width="1.2"/>
+<line x1="780" y1="95" x2="640" y2="190" stroke="#444" stroke-width="1.2"/>
+<line x1="860" y1="150" x2="640" y2="190" stroke="#444" stroke-width="1.2"/>
+<line x1="420" y1="225" x2="640" y2="190" stroke="#444" stroke-width="1.2"/>
+<line x1="860" y1="225" x2="640" y2="190" stroke="#444" stroke-width="1.2"/>
+<line x1="440" y1="565" x2="640" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="480" y1="650" x2="640" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="630" y1="690" x2="640" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="780" y1="660" x2="640" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="800" y1="580" x2="640" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="110" y1="370" x2="190" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="270" y1="360" x2="190" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="110" y1="575" x2="190" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="260" y1="580" x2="190" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="1040" y1="360" x2="1110" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="1200" y1="345" x2="1110" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="1290" y1="420" x2="1110" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="1290" y1="520" x2="1110" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="1190" y1="595" x2="1110" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="1040" y1="600" x2="1110" y2="470" stroke="#444" stroke-width="1.2"/>
+<line x1="640" y1="190" x2="640" y2="330" stroke="#222" stroke-width="1.4"/>
+<line x1="637.4" y1="470.0" x2="637.4" y2="330.0" stroke="#222" stroke-width="1.4"/>
+<line x1="642.6" y1="470.0" x2="642.6" y2="330.0" stroke="#222" stroke-width="1.4"/>
+<line x1="190" y1="470" x2="415" y2="470" stroke="#222" stroke-width="1.4"/>
+<line x1="640.0" y1="472.6" x2="415.0" y2="472.6" stroke="#222" stroke-width="1.4"/>
+<line x1="640.0" y1="467.4" x2="415.0" y2="467.4" stroke="#222" stroke-width="1.4"/>
+<line x1="640" y1="470" x2="875" y2="390" stroke="#222" stroke-width="1.4"/>
+<line x1="1109.1621141257087" y1="472.4612897557304" x2="874.1621141257089" y2="392.4612897557304" stroke="#222" stroke-width="1.4"/>
+<line x1="1110.8378858742913" y1="467.5387102442696" x2="875.8378858742911" y2="387.5387102442696" stroke="#222" stroke-width="1.4"/>
+<line x1="640" y1="470" x2="875" y2="550" stroke="#222" stroke-width="1.4"/>
+<line x1="1110.8378858742913" y1="472.4612897557304" x2="875.8378858742911" y2="552.4612897557304" stroke="#222" stroke-width="1.4"/>
+<line x1="1109.1621141257087" y1="467.5387102442696" x2="874.1621141257089" y2="547.5387102442696" stroke="#222" stroke-width="1.4"/>
+<ellipse cx="420" cy="130" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="420" y="134.5" font-size="13" text-anchor="middle" fill="#222" font-weight="bold" text-decoration="underline">customer_id</text>
+<ellipse cx="500" cy="95" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="500" y="99.5" font-size="13" text-anchor="middle" fill="#222">full_name</text>
+<ellipse cx="640" cy="95" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="640" y="99.5" font-size="13" text-anchor="middle" fill="#222">email</text>
+<ellipse cx="780" cy="95" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="780" y="99.5" font-size="13" text-anchor="middle" fill="#222">phone</text>
+<ellipse cx="860" cy="150" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="860" y="154.5" font-size="13" text-anchor="middle" fill="#222">city</text>
+<ellipse cx="420" cy="225" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="420" y="229.5" font-size="13" text-anchor="middle" fill="#222">kyc_status</text>
+<ellipse cx="860" cy="225" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="860" y="229.5" font-size="13" text-anchor="middle" fill="#222">created_at</text>
+<ellipse cx="440" cy="565" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="440" y="569.5" font-size="13" text-anchor="middle" fill="#222" font-weight="bold" text-decoration="underline">account_id</text>
+<ellipse cx="480" cy="650" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="480" y="654.5" font-size="13" text-anchor="middle" fill="#222">account_type</text>
+<ellipse cx="630" cy="690" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="630" y="694.5" font-size="13" text-anchor="middle" fill="#222">balance_paise</text>
+<ellipse cx="780" cy="660" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="780" y="664.5" font-size="13" text-anchor="middle" fill="#222">status</text>
+<ellipse cx="800" cy="580" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="800" y="584.5" font-size="13" text-anchor="middle" fill="#222">opened_at</text>
+<ellipse cx="110" cy="370" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="110" y="374.5" font-size="13" text-anchor="middle" fill="#222" font-weight="bold" text-decoration="underline">branch_code</text>
+<ellipse cx="270" cy="360" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="270" y="364.5" font-size="13" text-anchor="middle" fill="#222">branch_name</text>
+<ellipse cx="110" cy="575" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="110" y="579.5" font-size="13" text-anchor="middle" fill="#222">city</text>
+<ellipse cx="260" cy="580" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="260" y="584.5" font-size="13" text-anchor="middle" fill="#222">ifsc</text>
+<ellipse cx="1040" cy="360" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1040" y="364.5" font-size="13" text-anchor="middle" fill="#222" font-weight="bold" text-decoration="underline">txn_id</text>
+<ellipse cx="1200" cy="345" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1200" y="349.5" font-size="13" text-anchor="middle" fill="#222">amount_paise</text>
+<ellipse cx="1290" cy="420" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1290" y="424.5" font-size="13" text-anchor="middle" fill="#222">status</text>
+<ellipse cx="1290" cy="520" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1290" y="524.5" font-size="13" text-anchor="middle" fill="#222">channel</text>
+<ellipse cx="1190" cy="595" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1190" y="599.5" font-size="13" text-anchor="middle" fill="#222">created_at</text>
+<ellipse cx="1040" cy="600" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1040" y="604.5" font-size="13" text-anchor="middle" fill="#222">remarks</text>
+<polygon points="640,299.0 700.0,330 640,361.0 580.0,330" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="640" y="334.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#064e3b">OWNS</text>
+<polygon points="415,439.0 475.0,470 415,501.0 355.0,470" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="415" y="474.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#064e3b">HOSTS</text>
+<polygon points="875,359.0 935.0,390 875,421.0 815.0,390" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="875" y="394.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#064e3b">SENDS</text>
+<polygon points="875,519.0 935.0,550 875,581.0 815.0,550" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="875" y="554.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#064e3b">RECEIVES</text>
+<rect x="555.0" y="165.0" width="170" height="50" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.8"/>
+<text x="640" y="195" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">CUSTOMER</text>
+<rect x="555.0" y="445.0" width="170" height="50" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.8"/>
+<text x="640" y="475" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">ACCOUNT</text>
+<rect x="105.0" y="445.0" width="170" height="50" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.8"/>
+<text x="190" y="475" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">BANK_BRANCH</text>
+<rect x="1025.0" y="445.0" width="170" height="50" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.8"/>
+<text x="1110" y="475" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">TRANSACTION</text>
+<text x="628.0" y="234.0" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="652.0" y="436.0" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">N</text>
+<text x="289.0" y="487.0" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="541.0" y="463.0" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">N</text>
+<text x="730.6" y="456.8" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="776.8" y="412.6" font-size="12" font-style="italic" fill="#1d4ed8" text-anchor="middle">sender</text>
+<text x="1027.2" y="434.1" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">N</text>
+<text x="722.8" y="515.9" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="785.8" y="508.8" font-size="12" font-style="italic" fill="#1d4ed8" text-anchor="middle">receiver</text>
+<text x="1019.4" y="493.2" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">N</text>
+<rect x="1080" y="595" width="280" height="190" fill="#fafafa" stroke="#ccc" rx="6"/>
+<text x="1092" y="617" font-size="13" font-weight="bold" fill="#111">Legend (Chen notation)</text>
+<rect x="1092" y="631" width="34" height="18" fill="#eff6ff" stroke="#1e3a8a"/>
+<text x="1136" y="645" font-size="12.5" fill="#333">Entity  (double = weak entity)</text>
+<polygon points="1109,654 1126,664 1109,674 1092,664" fill="#ecfdf5" stroke="#047857"/>
+<text x="1136" y="669" font-size="12.5" fill="#333">Relationship  (double = identifying)</text>
+<ellipse cx="1109" cy="688" rx="17" ry="9" fill="#fefce8" stroke="#a16207"/>
+<text x="1136" y="693" font-size="12.5" fill="#333">Attribute;  underlined = key</text>
+<line x1="1092" y1="713" x2="1126" y2="713" stroke="#222" stroke-dasharray="4 3"/>
+<text x="1136" y="717" font-size="12.5" fill="#333">Dashed underline = partial key</text>
+<line x1="1092" y1="734" x2="1126" y2="734" stroke="#222"/><line x1="1092" y1="739" x2="1126" y2="739" stroke="#222"/>
+<text x="1136" y="741" font-size="12.5" fill="#333">Double line = total participation</text>
+<text x="1109" y="765" font-size="14" font-weight="bold" fill="#b91c1c" text-anchor="middle">1 N</text>
+<text x="1136" y="765" font-size="12.5" fill="#333">1 / N / M = cardinality</text>
+<text x="30" y="762" font-size="12.5" fill="#555">Candidate keys besides the primary key: CUSTOMER.email and BANK_BRANCH.ifsc (both UNIQUE).</text>
+<text x="30" y="780" font-size="12.5" fill="#555">KYC documents (one per customer) are stored in MongoDB, not in the relational schema.</text>
+</svg>

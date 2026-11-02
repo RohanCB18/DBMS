@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1380" height="1090" viewBox="0 0 1380 1090" font-family="Arial, Helvetica, sans-serif">
+<rect width="1380" height="1090" fill="#ffffff"/>
+<text x="30" y="40" font-size="22" font-weight="bold" fill="#111">Figure 2 - ER diagram: version-control domain (schema vcs)</text>
+<text x="30" y="64" font-size="14" fill="#555">Commits, branches, the anchor hash chain and integrity checks. Merkle roots are Poseidon hashes (very large integers).</text>
+<line x1="640" y1="170" x2="640" y2="260" stroke="#444" stroke-width="1.2"/>
+<line x1="480" y1="295" x2="640" y2="465" stroke="#444" stroke-width="1.2"/>
+<line x1="790" y1="295" x2="640" y2="465" stroke="#444" stroke-width="1.2"/>
+<line x1="520" y1="605" x2="640" y2="465" stroke="#444" stroke-width="1.2"/>
+<line x1="790" y1="445" x2="640" y2="465" stroke="#444" stroke-width="1.2"/>
+<line x1="770" y1="685" x2="640" y2="465" stroke="#444" stroke-width="1.2"/>
+<line x1="520" y1="695" x2="640" y2="465" stroke="#444" stroke-width="1.2"/>
+<line x1="90" y1="375" x2="210" y2="465" stroke="#444" stroke-width="1.2"/>
+<line x1="90" y1="550" x2="210" y2="465" stroke="#444" stroke-width="1.2"/>
+<line x1="90" y1="845" x2="210" y2="765" stroke="#444" stroke-width="1.2"/>
+<line x1="1010" y1="155" x2="1120" y2="245" stroke="#444" stroke-width="1.2"/>
+<line x1="1180" y1="145" x2="1120" y2="245" stroke="#444" stroke-width="1.2"/>
+<line x1="1300" y1="205" x2="1120" y2="245" stroke="#444" stroke-width="1.2"/>
+<line x1="1300" y1="295" x2="1120" y2="245" stroke="#444" stroke-width="1.2"/>
+<line x1="1150" y1="345" x2="1120" y2="245" stroke="#444" stroke-width="1.2"/>
+<line x1="1000" y1="745" x2="1120" y2="655" stroke="#444" stroke-width="1.2"/>
+<line x1="1290" y1="605" x2="1120" y2="655" stroke="#444" stroke-width="1.2"/>
+<line x1="1300" y1="705" x2="1120" y2="655" stroke="#444" stroke-width="1.2"/>
+<line x1="1150" y1="760" x2="1120" y2="655" stroke="#444" stroke-width="1.2"/>
+<line x1="470" y1="915" x2="640" y2="845" stroke="#444" stroke-width="1.2"/>
+<line x1="640" y1="945" x2="640" y2="845" stroke="#444" stroke-width="1.2"/>
+<line x1="810" y1="915" x2="640" y2="845" stroke="#444" stroke-width="1.2"/>
+<line x1="935" y1="845" x2="1090" y2="925" stroke="#444" stroke-width="1.2"/>
+<line x1="920" y1="930" x2="1090" y2="925" stroke="#444" stroke-width="1.2"/>
+<line x1="960" y1="1005" x2="1090" y2="925" stroke="#444" stroke-width="1.2"/>
+<line x1="1090" y1="1020" x2="1090" y2="925" stroke="#444" stroke-width="1.2"/>
+<line x1="1220" y1="1005" x2="1090" y2="925" stroke="#444" stroke-width="1.2"/>
+<line x1="1295" y1="950" x2="1090" y2="925" stroke="#444" stroke-width="1.2"/>
+<line x1="1295" y1="875" x2="1090" y2="925" stroke="#444" stroke-width="1.2"/>
+<line x1="1215" y1="830" x2="1090" y2="925" stroke="#444" stroke-width="1.2"/>
+<line x1="598.0" y1="465.0" x2="616.9" y2="260.0" stroke="#222" stroke-width="1.4"/>
+<line x1="682.0" y1="465.0" x2="663.1" y2="260.0" stroke="#222" stroke-width="1.4"/>
+<line x1="210" y1="465" x2="425" y2="390" stroke="#222" stroke-width="1.4"/>
+<line x1="639.1436323935725" y1="467.454920471759" x2="424.14363239357243" y2="392.454920471759" stroke="#222" stroke-width="1.4"/>
+<line x1="640.8563676064275" y1="462.545079528241" x2="425.85636760642757" y2="387.545079528241" stroke="#222" stroke-width="1.4"/>
+<line x1="210" y1="465" x2="425" y2="540" stroke="#222" stroke-width="1.4"/>
+<line x1="640" y1="465" x2="425" y2="540" stroke="#222" stroke-width="1.4"/>
+<line x1="210" y1="465" x2="210" y2="620" stroke="#222" stroke-width="1.4"/>
+<line x1="207.4" y1="765.0" x2="207.4" y2="620.0" stroke="#222" stroke-width="1.4"/>
+<line x1="212.6" y1="765.0" x2="212.6" y2="620.0" stroke="#222" stroke-width="1.4"/>
+<line x1="640" y1="465" x2="895" y2="330" stroke="#222" stroke-width="1.4"/>
+<line x1="1120.9188414786684" y1="247.43222744353375" x2="895.9188414786684" y2="332.43222744353375" stroke="#222" stroke-width="1.4"/>
+<line x1="1119.0811585213316" y1="242.56777255646625" x2="894.0811585213316" y2="327.56777255646625" stroke="#222" stroke-width="1.4"/>
+<line x1="640" y1="465" x2="895" y2="580" stroke="#222" stroke-width="1.4"/>
+<line x1="1119.1778078083562" y1="657.4665765749313" x2="894.1778078083562" y2="582.4665765749313" stroke="#222" stroke-width="1.4"/>
+<line x1="1120.8221921916438" y1="652.5334234250687" x2="895.8221921916438" y2="577.5334234250687" stroke="#222" stroke-width="1.4"/>
+<line x1="640" y1="465" x2="640" y2="665" stroke="#222" stroke-width="1.4"/>
+<line x1="637.4" y1="845.0" x2="637.4" y2="665.0" stroke="#222" stroke-width="1.4"/>
+<line x1="642.6" y1="845.0" x2="642.6" y2="665.0" stroke="#222" stroke-width="1.4"/>
+<ellipse cx="640" cy="170" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="640" y="174.5" font-size="13" text-anchor="middle" fill="#222">parent_order</text>
+<ellipse cx="480" cy="295" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="480" y="299.5" font-size="13" text-anchor="middle" fill="#222" font-weight="bold" text-decoration="underline">commit_id</text>
+<ellipse cx="790" cy="295" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="790" y="299.5" font-size="13" text-anchor="middle" fill="#222">merkle_root</text>
+<ellipse cx="520" cy="605" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="520" y="609.5" font-size="13" text-anchor="middle" fill="#222">message</text>
+<ellipse cx="790" cy="445" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="790" y="449.5" font-size="13" text-anchor="middle" fill="#222">author</text>
+<ellipse cx="770" cy="685" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="770" y="689.5" font-size="13" text-anchor="middle" fill="#222">record_count</text>
+<ellipse cx="520" cy="695" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="520" y="699.5" font-size="13" text-anchor="middle" fill="#222">created_at</text>
+<ellipse cx="90" cy="375" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="90" y="379.5" font-size="13" text-anchor="middle" fill="#222" font-weight="bold" text-decoration="underline">branch_name</text>
+<ellipse cx="90" cy="550" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="90" y="554.5" font-size="13" text-anchor="middle" fill="#222">created_at</text>
+<ellipse cx="90" cy="845" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="90" y="849.5" font-size="13" text-anchor="middle" fill="#222" font-weight="bold" text-decoration="underline">singleton</text>
+<ellipse cx="1010" cy="155" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1010" y="159.5" font-size="13" text-anchor="middle" fill="#222">seq</text>
+<ellipse cx="1180" cy="145" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1180" y="149.5" font-size="13" text-anchor="middle" fill="#222">merkle_root</text>
+<ellipse cx="1300" cy="205" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1300" y="209.5" font-size="13" text-anchor="middle" fill="#222">prev_hash</text>
+<ellipse cx="1300" cy="295" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1300" y="299.5" font-size="13" text-anchor="middle" fill="#222">entry_hash</text>
+<ellipse cx="1150" cy="345" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1150" y="349.5" font-size="13" text-anchor="middle" fill="#222">anchored_at</text>
+<ellipse cx="1000" cy="745" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1000" y="749.5" font-size="13" text-anchor="middle" fill="#222" font-weight="bold" text-decoration="underline" stroke-dasharray="3 2">run_id</text>
+<line x1="979.0" y1="753" x2="1021.0" y2="753" stroke="#222" stroke-dasharray="4 3"/>
+<ellipse cx="1290" cy="605" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1290" y="609.5" font-size="13" text-anchor="middle" fill="#222">ok</text>
+<ellipse cx="1300" cy="705" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1300" y="709.5" font-size="13" text-anchor="middle" fill="#222">details</text>
+<ellipse cx="1150" cy="760" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1150" y="764.5" font-size="13" text-anchor="middle" fill="#222">ran_at</text>
+<ellipse cx="470" cy="915" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="470" y="919.5" font-size="13" text-anchor="middle" fill="#222" font-weight="bold" text-decoration="underline">schema_name</text>
+<ellipse cx="640" cy="945" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="640" y="949.5" font-size="13" text-anchor="middle" fill="#222">created_at</text>
+<ellipse cx="810" cy="915" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="810" y="919.5" font-size="13" text-anchor="middle" fill="#222">last_used</text>
+<ellipse cx="935" cy="845" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="935" y="849.5" font-size="13" text-anchor="middle" fill="#222" font-weight="bold" text-decoration="underline">change_id</text>
+<ellipse cx="920" cy="930" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="920" y="934.5" font-size="13" text-anchor="middle" fill="#222">table_name</text>
+<ellipse cx="960" cy="1005" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="960" y="1009.5" font-size="13" text-anchor="middle" fill="#222">pk</text>
+<ellipse cx="1090" cy="1020" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1090" y="1024.5" font-size="13" text-anchor="middle" fill="#222">op</text>
+<ellipse cx="1220" cy="1005" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1220" y="1009.5" font-size="13" text-anchor="middle" fill="#222">old_row</text>
+<ellipse cx="1295" cy="950" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1295" y="954.5" font-size="13" text-anchor="middle" fill="#222">new_row</text>
+<ellipse cx="1295" cy="875" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1295" y="879.5" font-size="13" text-anchor="middle" fill="#222">changed_at</text>
+<ellipse cx="1215" cy="830" rx="66" ry="20" fill="#fefce8" stroke="#a16207" stroke-width="1.3"/>
+<text x="1215" y="834.5" font-size="13" text-anchor="middle" fill="#222">db_user</text>
+<polygon points="640,229.0 700.0,260 640,291.0 580.0,260" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="640" y="264.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#064e3b">PARENT_OF</text>
+<polygon points="425,359.0 485.0,390 425,421.0 365.0,390" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="425" y="394.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#064e3b">MADE_ON</text>
+<polygon points="425,509.0 485.0,540 425,571.0 365.0,540" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="425" y="544.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#064e3b">HEAD_OF</text>
+<polygon points="210,589.0 270.0,620 210,651.0 150.0,620" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="210" y="624.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#064e3b">CHECKED_OUT</text>
+<polygon points="895,299.0 955.0,330 895,361.0 835.0,330" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<polygon points="895,305.0 948.0,330 895,355.0 842.0,330" fill="none" stroke="#047857" stroke-width="1.2"/>
+<text x="895" y="334.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#064e3b">ANCHORED</text>
+<polygon points="895,549.0 955.0,580 895,611.0 835.0,580" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<polygon points="895,555.0 948.0,580 895,605.0 842.0,580" fill="none" stroke="#047857" stroke-width="1.2"/>
+<text x="895" y="584.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#064e3b">VERIFIED</text>
+<polygon points="640,634.0 700.0,665 640,696.0 580.0,665" fill="#ecfdf5" stroke="#047857" stroke-width="1.6"/>
+<text x="640" y="669.5" font-size="12" font-weight="bold" text-anchor="middle" fill="#064e3b">CACHED_AS</text>
+<rect x="555.0" y="440.0" width="170" height="50" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.8"/>
+<text x="640" y="470" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">COMMIT</text>
+<rect x="125.0" y="440.0" width="170" height="50" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.8"/>
+<text x="210" y="470" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">VERSION_BRANCH</text>
+<rect x="125.0" y="740.0" width="170" height="50" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.8"/>
+<text x="210" y="770" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">WORKSPACE</text>
+<rect x="1035.0" y="220.0" width="170" height="50" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.8"/>
+<rect x="1040.0" y="225.0" width="160" height="40" fill="none" stroke="#1e3a8a" stroke-width="1.3"/>
+<text x="1120" y="250" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">ANCHOR</text>
+<rect x="1035.0" y="630.0" width="170" height="50" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.8"/>
+<rect x="1040.0" y="635.0" width="160" height="40" fill="none" stroke="#1e3a8a" stroke-width="1.3"/>
+<text x="1120" y="660" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">VERIFICATION_RUN</text>
+<rect x="555.0" y="820.0" width="170" height="50" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.8"/>
+<text x="640" y="850" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">SNAPSHOT_SCHEMA</text>
+<rect x="1005.0" y="900.0" width="170" height="50" fill="#eff6ff" stroke="#1e3a8a" stroke-width="1.8"/>
+<text x="1090" y="930" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">CHANGE_LOG</text>
+<text x="613.5" y="432.2" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">N</text>
+<text x="593.3" y="367.1" font-size="12" font-style="italic" fill="#1d4ed8" text-anchor="middle">child</text>
+<text x="666.5" y="432.2" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">M</text>
+<text x="686.7" y="367.1" font-size="12" font-style="italic" fill="#1d4ed8" text-anchor="middle">parent</text>
+<text x="298.8" y="451.7" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="559.1" y="429.1" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">N</text>
+<text x="290.9" y="510.9" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">N</text>
+<text x="551.2" y="488.3" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="198.0" y="509.0" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="222.0" y="731.0" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="705.2" y="449.1" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="1036.5" y="268.7" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="703.3" y="511.7" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="1035.5" y="619.2" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">N</text>
+<text x="628.0" y="509.0" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<text x="652.0" y="811.0" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
+<rect x="30" y="885" width="280" height="190" fill="#fafafa" stroke="#ccc" rx="6"/>
+<text x="42" y="907" font-size="13" font-weight="bold" fill="#111">Legend (Chen notation)</text>
+<rect x="42" y="921" width="34" height="18" fill="#eff6ff" stroke="#1e3a8a"/>
+<text x="86" y="935" font-size="12.5" fill="#333">Entity  (double = weak entity)</text>
+<polygon points="59,944 76,954 59,964 42,954" fill="#ecfdf5" stroke="#047857"/>
+<text x="86" y="959" font-size="12.5" fill="#333">Relationship  (double = identifying)</text>
+<ellipse cx="59" cy="978" rx="17" ry="9" fill="#fefce8" stroke="#a16207"/>
+<text x="86" y="983" font-size="12.5" fill="#333">Attribute;  underlined = key</text>
+<line x1="42" y1="1003" x2="76" y2="1003" stroke="#222" stroke-dasharray="4 3"/>
+<text x="86" y="1007" font-size="12.5" fill="#333">Dashed underline = partial key</text>
+<line x1="42" y1="1024" x2="76" y2="1024" stroke="#222"/><line x1="42" y1="1029" x2="76" y2="1029" stroke="#222"/>
+<text x="86" y="1031" font-size="12.5" fill="#333">Double line = total participation</text>
+<text x="59" y="1055" font-size="14" font-weight="bold" fill="#b91c1c" text-anchor="middle">1 N</text>
+<text x="86" y="1055" font-size="12.5" fill="#333">1 / N / M = cardinality</text>
+<text x="30" y="88" font-size="12.5" fill="#555">PARENT_OF is a recursive relationship on COMMIT (a merge commit has 2 parents). CHANGE_LOG is a stand-alone audit entity.</text>
+<text x="30" y="106" font-size="12.5" fill="#555">ANCHOR and VERIFICATION_RUN cannot exist without their COMMIT (weak entities, identifying relationships).</text>
+</svg>
