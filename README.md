@@ -123,7 +123,7 @@ api/tests/      pytest unit tests;  api/scripts/demo_flow.py = end-to-end demo &
 db/postgres/    01_bank_schema.sql, 02_vcs_schema.sql, 03_roles.sql, 04_live_sql.sql
 web/            React dashboard + auditor portal (Vite, TypeScript, Tailwind)
 scripts/local/  setup/start/stop the stack without Docker (Windows)
-docs/           DATABASE_DESIGN.md, IMPLEMENTATION_PLAN.md
+docs/           DEMO_GUIDE.pdf (how to present every component), DATABASE_DESIGN.md, IMPLEMENTATION_PLAN.md
 HANDOFF.md      demo script, gotchas, known limitations, what is left (deployment)
 ```
 
