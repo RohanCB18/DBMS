@@ -138,6 +138,10 @@ class TamperIn(BaseModel):
     mode: Literal["blob", "root", "undo"]
 
 
+class TamperSqlIn(BaseModel):
+    statement: str = Field(min_length=1, max_length=5000)
+
+
 class FreezeIn(BaseModel):
     account_ids: list[int] = Field(min_length=1, max_length=20)
 
@@ -333,6 +337,11 @@ def demo_business_day():
 @app.post("/api/demo/tamper", dependencies=[Depends(demo_guard)])
 def demo_tamper(body: TamperIn):
     return demo.tamper(body.mode)
+
+
+@app.post("/api/demo/tamper-sql", dependencies=[Depends(demo_guard)])
+def demo_tamper_sql(body: TamperSqlIn):
+    return JSONResponse(jsonable_encoder(demo.tamper_sql(body.statement)))
 
 
 @app.post("/api/demo/merge-scenario", dependencies=[Depends(demo_guard)])

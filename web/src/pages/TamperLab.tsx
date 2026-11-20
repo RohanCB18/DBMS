@@ -1,11 +1,18 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Ban, Database, Leaf, ShieldCheck, Skull, Terminal, Undo2 } from "lucide-react";
+import { Ban, Database, EyeOff, Leaf, Play, ShieldCheck, Skull, Terminal, Undo2 } from "lucide-react";
 import { api, type VerifyResult } from "../lib/api";
 import { useAction } from "../lib/hooks";
-import { Button, PageHeader, cx } from "../components/ui";
+import { Badge, Button, Card, ErrorBox, Kbd, PageHeader, cx } from "../components/ui";
 import { Layers } from "../components/Layers";
+
+const TAMPER_EXAMPLES: [string, string][] = [
+  ["Shrink the hero transaction", "UPDATE transactions\nSET amount_paise = 2500000      -- ₹2,50,000 → ₹25,000\nWHERE txn_id = 100600;"],
+  ["Flip a settled transaction", "UPDATE transactions\nSET status = 'FAILED'\nWHERE txn_id = 100600;"],
+  ["Inflate an account balance", "UPDATE accounts\nSET balance_paise = balance_paise + 100000000   -- +₹10,00,000\nWHERE account_id = 5001000001;"],
+  ["Rename a customer", "UPDATE customers\nSET full_name = 'Not Ananya Rao'\nWHERE customer_id = 1;"],
+];
 
 export default function TamperLab() {
   const status = useQuery({ queryKey: ["status"], queryFn: api.status });
@@ -39,6 +46,9 @@ export default function TamperLab() {
         </motion.button>
       </div>
 
+      <TamperConsole busy={tamper.isPending}
+        onDone={(r) => { setAttack({ mode: "sql", ...r }); setResult(null); }} />
+
       <AnimatePresence mode="wait">
         {attack && (
           <motion.div key={attack.mode + (attack.attack ?? "")} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -49,6 +59,14 @@ export default function TamperLab() {
             </div>
             <div className="space-y-3 p-5 font-mono text-[14.5px]">
               {attack.attack && <p className="text-rose-200"><span className="text-bad">$ </span>{attack.attack}</p>}
+              {attack.statement && (
+                <pre className="whitespace-pre-wrap rounded-lg border border-bad/20 bg-black/30 px-3 py-2 text-[13px] text-rose-100">{attack.statement}</pre>
+              )}
+              {attack.changed?.length > 0 && (
+                <p className="font-sans text-sm text-slate-400">Forged record{attack.changed.length > 1 ? "s" : ""}:{" "}
+                  {attack.changed.map((k: string) => <span key={k} className="mr-2 font-mono text-rose-200">{k}</span>)}
+                  — now shows the fake value in <span className="text-slate-200">Live data</span>, yet the working tree looks <span className="text-ok">clean</span>.</p>
+              )}
               {attack.first_attempt_blocked_by_trigger && (
                 <div className="flex items-start gap-3 rounded-xl border border-amber-400/30 bg-amber-400/[0.08] px-4 py-3 text-amber-200">
                   <Ban className="mt-0.5 h-5 w-5 shrink-0" />
@@ -75,6 +93,45 @@ export default function TamperLab() {
       </AnimatePresence>
       {result && <div className="mt-6"><Layers result={result} /></div>}
     </>
+  );
+}
+
+function TamperConsole({ onDone, busy }: { onDone: (r: any) => void; busy?: boolean }) {
+  const [sql, setSql] = useState(TAMPER_EXAMPLES[0][1]);
+  const [error, setError] = useState<unknown>(null);
+  const exec = useAction((statement: string) => api.tamperSql(statement));
+  const go = () => {
+    setError(null);
+    exec.mutate(sql, { onSuccess: onDone, onError: setError });
+  };
+  return (
+    <Card className="mt-6 border-bad/30" glow
+      title={<span className="flex items-center gap-2 text-rose-300"><Terminal className="h-4 w-4" /> Tamper console — write your own silent edit</span>}
+      right={<Badge tone="bad" dot>attack #3</Badge>}>
+      <p className="mb-3 flex items-start gap-2 text-[14.5px] text-slate-400">
+        <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
+        <span>An insider with full database access runs SQL on the live bank tables <b>and</b> rewrites the committed
+          snapshot to match — with the audit trigger suppressed. The change shows in <b>Live data</b>, the working tree
+          stays <span className="text-ok">clean</span> (nothing “uncommitted”), and even the history browse shows the forged
+          value. The one thing they cannot forge is the Merkle leaf — so <b>Verify</b> still catches it and names the record.</span>
+      </p>
+      <textarea value={sql} onChange={(e) => setSql(e.target.value)} spellCheck={false}
+        onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); go(); } }}
+        className="h-36 w-full resize-y rounded-xl border border-bad/25 bg-ink-950/80 p-4 font-mono text-[15px] leading-relaxed text-rose-50 outline-none transition focus:border-bad/60 focus:ring-4 focus:ring-bad/10" />
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <Button variant="danger" busy={exec.isPending || busy} disabled={!sql.trim()} onClick={go}>
+          <Play className="h-4 w-4" /> Tamper silently
+        </Button>
+        <span className="text-sm text-slate-500"><Kbd>Ctrl Enter</Kbd> · one UPDATE / DELETE / INSERT on the bank tables · needs a WHERE</span>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {TAMPER_EXAMPLES.map(([label, q]) => (
+          <button key={label} onClick={() => setSql(q)}
+            className="rounded-lg border border-bad/25 px-3 py-1.5 text-[13.5px] text-rose-100 transition hover:bg-bad/10">{label}</button>
+        ))}
+      </div>
+      {error ? <div className="mt-4"><ErrorBox error={error} /></div> : null}
+    </Card>
   );
 }
 

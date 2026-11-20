@@ -147,6 +147,7 @@ export const api = {
   reset: () => request<any>("POST", "/demo/reset"),
   businessDay: () => request<{ events: string[]; status: Status }>("POST", "/demo/business-day"),
   tamper: (mode: "blob" | "root" | "undo") => request<any>("POST", "/demo/tamper", { mode }),
+  tamperSql: (statement: string) => request<{ attack: string; statement: string; affected: number; changed: string[]; hint: string }>("POST", "/demo/tamper-sql", { statement }),
   scenario: (mode: "clean" | "conflict") => request<any>("POST", "/demo/merge-scenario", { mode }),
   freeze: (account_ids: number[]) => request<any>("POST", "/demo/freeze", { account_ids }),
 };

@@ -5,10 +5,11 @@ advance from Ananya Rao that is PENDING at the first commit and COMPLETED after 
 first business day. The auditor later asks for proof of that, without seeing anything else.
 """
 import random
+import secrets
 from datetime import datetime, timedelta, timezone
 
-from . import graph, sqlconsole, vcs
-from .canonical import SQL_TABLES
+from . import graph, livesql, sqlconsole, vcs, zk
+from .canonical import SQL_TABLES, blob_id, record_key
 from .db import live_db, pg, store
 
 HERO_TXN = 100600
@@ -174,7 +175,97 @@ def business_day() -> dict:
     return {"events": log, "status": vcs.status()}
 
 
-def tamper(mode: str) -> dict:
+def tamper_sql(statement):
+    """Silent insider tamper, driven by your own SQL.
+
+    Runs one UPDATE / DELETE / INSERT against the live bank tables with the audit and
+    state-machine triggers suppressed (so nothing is logged as an uncommitted change), then
+    re-points the committed MongoDB snapshot at the new data so `status` stays clean and the
+    history browse shows the forged value too. The Poseidon Merkle *leaf* in the manifest is
+    left untouched, so `verify` still recomputes it, fails, and pinpoints the record.
+
+    Educational / demo only (gated by ZTDB_DEMO_MODE). Reverted by tamper('undo').
+    """
+    q, kind = livesql.check_statement(statement)          # single DML on bank.*, WHERE required
+    bare = livesql._bare(q).lower()
+    if "vcs" in bare or "snap_" in bare or "information_schema" in bare:
+        raise vcs.VcsError("the tamper console edits the bank tables only", 403)
+    if kind == "select":
+        raise vcs.VcsError("use UPDATE / DELETE / INSERT to tamper - SELECT changes nothing")
+
+    with vcs.vcs_lock():
+        st = vcs.status()
+        if not st["clean"]:
+            raise vcs.VcsError("commit or reset the working database first - a silent tamper needs a "
+                               "clean baseline so the forged value can be hidden", 409)
+        cid = st["head"]
+        if not cid:
+            raise vcs.VcsError("make a commit first")
+        tree = vcs.manifest(cid)
+        original_entries = [dict(e) for e in tree["entries"]]
+        base = {e["key"]: e for e in original_entries}
+
+        # 1. apply the edit to the live bank tables, bypassing audit + state-machine triggers
+        with pg() as conn:
+            with conn.transaction():
+                conn.execute("SET LOCAL ztdb.restoring = 'on'")
+                conn.execute("SET LOCAL search_path = bank, pg_catalog")
+                cur = conn.execute(q)
+                affected = cur.rowcount
+            live = vcs.collect_live(conn)
+        if affected == 0:
+            raise vcs.VcsError("no rows matched - nothing was tampered")
+
+        # 2. re-point the committed snapshot at the new data; leave the Merkle leaf stale
+        live_by_key = {record_key(r["table"], r["pk"]): r for r in live}
+        new_entries, changed = [], []
+        for e in original_entries:
+            key = e["key"]
+            rec = live_by_key.get(key)
+            if rec is None:                                   # deleted live -> drop from snapshot
+                changed.append(key)
+                continue
+            nid = blob_id(rec)
+            if nid != e["blob"]:                              # modified -> new blob, SAME (stale) leaf
+                _upsert_blob(nid, rec, _salt_of(e["blob"]))
+                new_entries.append({"key": key, "blob": nid, "leaf": e["leaf"]})
+                changed.append(key)
+            else:
+                new_entries.append(e)
+        for key, rec in live_by_key.items():                  # inserted live -> add a snapshot entry
+            if key not in base:
+                salt = str(secrets.randbits(248))
+                nid = blob_id(rec)
+                _upsert_blob(nid, rec, salt)
+                leaf = zk.leaves_for([{"table": rec["table"], "pk": rec["pk"], "fields": rec["fields"],
+                                       "salt": salt}])[0]
+                new_entries.append({"key": key, "blob": nid, "leaf": leaf})
+                changed.append(key)
+
+        store.trees.update_one({"_id": cid}, {"$set": {"entries": new_entries}})
+        store.tamper_backup.update_one(
+            {"_id": "sqltamper:_meta"},
+            {"$setOnInsert": {"kind": "sqltamper", "head": cid, "entries": original_entries},
+             "$set": {"last_statement": q}}, upsert=True)
+
+    return {"attack": "Silently edited the live data and rewrote the committed snapshot to match",
+            "statement": q, "affected": affected, "changed": changed,
+            "hint": "Live data now shows the forged value and the working tree looks clean - "
+                    "run verify to see the Merkle leaf expose it."}
+
+
+def _salt_of(blob_id_):
+    b = store.blobs.find_one({"_id": blob_id_}, {"salt": 1})
+    return b["salt"] if b else str(secrets.randbits(248))
+
+
+def _upsert_blob(nid, rec, salt):
+    store.blobs.update_one({"_id": nid}, {"$setOnInsert": {
+        "_id": nid, "table": rec["table"], "pk": rec["pk"], "fields": rec["fields"],
+        "key": record_key(rec["table"], rec["pk"]), "salt": salt}}, upsert=True)
+
+
+def tamper(mode):
     """Play the malicious insider. Modes: blob | root | undo."""
     if mode == "blob":
         head = vcs.status()["head"]
@@ -183,7 +274,7 @@ def tamper(mode: str) -> dict:
         store.tamper_backup.replace_one({"_id": blob["_id"]}, blob, upsert=True)
         fields = [[n, 25_000_00 if n == "amount_paise" else v] for n, v in blob["fields"]]
         store.blobs.update_one({"_id": blob["_id"]}, {"$set": {"fields": fields}})
-        return {"attack": "Edited committed txn #100600 directly in MongoDB: amount ₹2,50,000 -> ₹25,000",
+        return {"attack": "Edited committed txn #100600 directly in MongoDB: amount \u20b92,50,000 -> \u20b925,000",
                 "blob": blob["_id"], "hint": "Now run verify on any commit containing this version."}
     if mode == "root":
         with pg() as conn:
@@ -205,7 +296,15 @@ def tamper(mode: str) -> dict:
                 "hint": "The anchor hash chain still holds the original root, so verify will catch it."}
     if mode == "undo":
         undone = []
-        for b in store.tamper_backup.find({"_id": {"$ne": "root"}}):
+        # silent SQL tamper: restore the original manifest, then rewrite the live DB from it
+        meta = store.tamper_backup.find_one({"_id": "sqltamper:_meta"})
+        if meta:
+            store.trees.update_one({"_id": meta["head"]}, {"$set": {"entries": meta["entries"]}})
+            vcs.restore(meta["head"], force=True)
+            store.tamper_backup.delete_one({"_id": "sqltamper:_meta"})
+            undone.append("silent SQL tamper reverted (live data and snapshot restored)")
+        # record blobs (mode=blob): the backup doc is the original blob, replaced back by its id
+        for b in store.tamper_backup.find({"_id": {"$ne": "root"}, "kind": {"$exists": False}}):
             store.blobs.replace_one({"_id": b["_id"]}, b)
             undone.append(f"blob {b['_id'][:12]} restored")
         r = store.tamper_backup.find_one({"_id": "root"})
