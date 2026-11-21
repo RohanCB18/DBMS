@@ -21,8 +21,21 @@ store = mongo["ztdb"]          # content-addressed snapshot store
 neo = GraphDatabase.driver(config.NEO4J_URI, auth=(config.NEO4J_USER, config.NEO4J_PASSWORD))
 
 
+RESET_LOCK_KEY = 72026102   # pg advisory-lock id: "the demo reset is truncating the tables"
+
+
 @contextmanager
-def pg():
-    """A Postgres connection; commits on success, rolls back on error."""
+def pg(exclusive: bool = False):
+    """A Postgres connection; commits on success, rolls back on error.
+
+    Every transaction first takes a *shared* transaction-level advisory lock; the demo reset takes
+    it *exclusively*. TRUNCATE needs an ACCESS EXCLUSIVE lock on every table, while the dashboard's
+    polling reads several tables per transaction — taking this one lock before any table lock means
+    the two can only queue behind each other, never deadlock.
+    """
     with psycopg.connect(config.PG_DSN, row_factory=dict_row) as conn:
+        if exclusive:
+            conn.execute("SELECT pg_advisory_xact_lock(%s)", (RESET_LOCK_KEY,))
+        else:
+            conn.execute("SELECT pg_advisory_xact_lock_shared(%s)", (RESET_LOCK_KEY,))
         yield conn

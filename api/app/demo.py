@@ -6,7 +6,10 @@ first business day. The auditor later asks for proof of that, without seeing any
 """
 import random
 import secrets
+import time
 from datetime import datetime, timedelta, timezone
+
+import psycopg
 
 from . import graph, livesql, sqlconsole, vcs, zk
 from .canonical import SQL_TABLES, blob_id, record_key
@@ -103,31 +106,50 @@ def _seed_rows(rng: random.Random):
     return branches, customers, [tuple(a) for a in accounts], txns, kyc
 
 
-def reset() -> dict:
-    """Wipe all three databases, load the seed bank, and make the first commit."""
-    with pg() as conn:
+def _reset_postgres(branches, customers, accounts, txns) -> None:
+    with pg(exclusive=True) as conn:
         sqlconsole.drop_all(conn)
         conn.execute("""TRUNCATE bank.transactions, bank.accounts, bank.customers, bank.bank_branches,
                         vcs.verification_runs, vcs.anchors, vcs.change_log, vcs.head,
                         vcs.commit_parents, vcs.branches, vcs.commits RESTART IDENTITY CASCADE""")
         conn.execute("INSERT INTO vcs.branches (branch_name) VALUES ('main')")
         conn.execute("INSERT INTO vcs.head (branch_name) VALUES ('main')")
-        branches, customers, accounts, txns, kyc = _seed_rows(random.Random(42))
         with conn.cursor() as cur:
             cur.executemany("INSERT INTO bank.bank_branches VALUES (%s, %s, %s, %s)", branches)
             cur.executemany("INSERT INTO bank.customers VALUES (%s, %s, %s, %s, %s, %s, %s)", customers)
             cur.executemany("INSERT INTO bank.accounts VALUES (%s, %s, %s, %s, %s, %s, %s)", accounts)
             cur.executemany("INSERT INTO bank.transactions VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", txns)
         conn.execute(f"SELECT setval('bank.txn_id_seq', {HERO_TXN})")
+
+
+def reset() -> dict:
+    """Wipe all three databases, load the seed bank, and make the first commit."""
+    branches, customers, accounts, txns, kyc = _seed_rows(random.Random(42))
+    with vcs.vcs_lock():
+        # pg(exclusive=True) makes the dashboard's polling queue behind the reset instead of
+        # deadlocking with TRUNCATE. The retry is a safety net for connections that do not go
+        # through pg() (the SQL consoles); an aborted attempt is fully rolled back, so it is safe.
+        for attempt in range(5):
+            try:
+                _reset_postgres(branches, customers, accounts, txns)
+                break
+            except psycopg.errors.DeadlockDetected:
+                if attempt == 4:
+                    raise vcs.VcsError("the database is busy — please try Reset demo again", 409)
+                time.sleep(0.3 * (attempt + 1))
+        _reset_stores(kyc)
+        first = vcs.commit("Initial import of ZTDB Bank (core banking + KYC)", "system")
+    return {"seeded": {"branches": len(branches), "customers": len(customers), "accounts": len(accounts),
+                       "transactions": len(txns), "kyc_documents": len(kyc)}, "commit": first}
+
+
+def _reset_stores(kyc) -> None:
     for name in ("blobs", "trees", "proofs", "tamper_backup", "external_anchors"):
         store[name].drop()
     live_db.kyc_documents.drop()
     live_db.kyc_documents.insert_many(kyc)
     graph.wipe()
     graph.ensure_schema()
-    first = vcs.commit("Initial import of ZTDB Bank (core banking + KYC)", "system")
-    return {"seeded": {"branches": len(branches), "customers": len(customers), "accounts": len(accounts),
-                       "transactions": len(txns), "kyc_documents": len(kyc)}, "commit": first}
 
 
 def business_day() -> dict:
