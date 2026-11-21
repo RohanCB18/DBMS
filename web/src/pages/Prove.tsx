@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Download, EyeOff, KeyRound, ExternalLink, Loader2, Eye } from "lucide-react";
 import { api, TABLES, type ProofPackage } from "../lib/api";
 import { useAction } from "../lib/hooks";
@@ -67,7 +67,7 @@ export default function Prove() {
               <div className="flex gap-2">
                 {(["eq", "gte", "lte"] as const).map((o) => (
                   <button key={o} disabled={o !== "eq" && !numeric} onClick={() => setOp(o)}
-                    className={`flex-1 rounded-xl border py-2.5 text-lg font-semibold transition disabled:opacity-30 ${op === o ? "border-ok/60 bg-ok/15 text-ok shadow-[0_0_20px_-6px_rgba(52,211,153,0.6)]" : "border-white/10 bg-white/[0.02] text-slate-300 hover:bg-white/[0.06]"}`}>{opText[o]}</button>
+                    className={`flex-1 rounded-xl border py-2.5 text-lg font-semibold transition disabled:opacity-30 ${op === o ? "border-ok/60 bg-ok/15 text-ok shadow-[0_0_20px_-6px_rgb(var(--ok)/0.6)]" : "border-white/10 bg-white/[0.02] text-slate-300 hover:bg-white/[0.06]"}`}>{opText[o]}</button>
                 ))}
               </div>
             </Field>
@@ -88,7 +88,7 @@ export default function Prove() {
         <Card title="What the prover knows vs what the auditor will learn">
           {rec.data ? (
             <div className="space-y-4">
-              <div className="rounded-xl border border-ok/30 bg-gradient-to-br from-ok/[0.1] to-transparent p-4 shadow-[0_0_30px_-14px_rgba(52,211,153,0.6)]">
+              <div className="rounded-xl border border-ok/30 bg-gradient-to-br from-ok/[0.1] to-transparent p-4 shadow-[0_0_30px_-14px_rgb(var(--ok)/0.6)]">
                 <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-ok"><Eye className="h-4 w-4" /> revealed (the claim only)</div>
                 <div className="font-mono text-lg text-white">{table} #{pk}: {field} {opText[op]} {field.endsWith("_paise") && /^\d+$/.test(value) ? cell(field, Number(value)) : value}</div>
                 <div className="mt-1 text-sm text-slate-400">in commit {labels[ref]} <Hash value={ref} head={10} tail={0} /></div>

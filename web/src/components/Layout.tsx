@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, ExternalLink, GitBranch, Search, ShieldCheck } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { ArrowRight, ExternalLink, GitBranch, Moon, Search, ShieldCheck, Sun } from "lucide-react";
+import { useTheme } from "../lib/theme";
 import { api } from "../lib/api";
 import { NAV, NAV_ITEMS, navFor } from "../lib/nav";
 import { Hash, Kbd, StatusDot, cx } from "./ui";
@@ -28,7 +29,7 @@ export function Layout() {
       <Backdrop />
       <Sidebar />
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-ink-950/70 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 border-b border-white/[0.07] bg-ink-950/75 backdrop-blur-xl backdrop-saturate-150">
           <div className="flex items-center gap-4 px-8 py-3.5">
             <div className="hidden items-center gap-2 text-sm text-slate-500 md:flex">
               <span>{here?.section ?? "ZK-TemporalDB"}</span>
@@ -52,12 +53,13 @@ export function Layout() {
                 className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] py-1.5 pl-3 pr-2 text-sm text-slate-400 transition hover:border-white/20 hover:text-slate-200">
                 <Search className="h-4 w-4" /> Jump to <Kbd>Ctrl K</Kbd>
               </button>
+              <ThemeToggle />
             </div>
           </div>
         </header>
         <main className="mx-auto max-w-[1500px] px-8 py-8">
-          <motion.div key={pathname} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}>
+          <motion.div key={pathname} initial={{ opacity: 0, y: 12, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
             <Outlet />
           </motion.div>
         </main>
@@ -70,19 +72,36 @@ export function Layout() {
 function Backdrop() {
   return (
     <div className="backdrop" aria-hidden>
-      <div className="blob animate-aurora-a" style={{ width: 620, height: 620, top: -220, right: -120, background: "radial-gradient(circle, rgba(52,211,153,0.35), transparent 65%)" }} />
-      <div className="blob animate-aurora-b" style={{ width: 560, height: 560, top: 160, left: 180, background: "radial-gradient(circle, rgba(34,211,238,0.18), transparent 65%)" }} />
-      <div className="blob animate-aurora-a" style={{ width: 700, height: 700, bottom: -320, right: 200, background: "radial-gradient(circle, rgba(167,139,250,0.22), transparent 65%)" }} />
+      <div className="blob animate-aurora-a" style={{ width: 640, height: 640, top: -240, right: -120, background: "radial-gradient(circle, rgb(var(--ok) / 0.30), transparent 65%)" }} />
+      <div className="blob animate-aurora-b" style={{ width: 560, height: 560, top: 140, left: 160, background: "radial-gradient(circle, rgb(var(--cyan) / 0.16), transparent 65%)" }} />
+      <div className="blob animate-aurora-a" style={{ width: 720, height: 720, bottom: -340, right: 220, background: "radial-gradient(circle, rgb(var(--violet) / 0.14), transparent 65%)" }} />
       <div className="grid-lines" />
       <div className="noise" />
     </div>
   );
 }
 
+/** Sun/moon toggle with a rotating icon swap. */
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  const light = theme === "light";
+  return (
+    <button onClick={toggle} aria-label={light ? "Switch to dark theme" : "Switch to light theme"} title={light ? "Dark theme" : "Light theme"}
+      className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-white/10 bg-white/[0.03] text-slate-300 transition hover:border-white/20 hover:text-white">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span key={theme} initial={{ y: 14, rotate: -90, opacity: 0 }} animate={{ y: 0, rotate: 0, opacity: 1 }} exit={{ y: -14, rotate: 90, opacity: 0 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}>
+          {light ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px] text-amber-300" />}
+        </motion.span>
+      </AnimatePresence>
+    </button>
+  );
+}
+
 function Sidebar() {
   const { pathname } = useLocation();
   return (
-    <aside className="sticky top-0 z-20 flex h-screen w-[17rem] shrink-0 flex-col border-r border-white/[0.06] bg-ink-950/60 px-3 py-5 backdrop-blur-xl">
+    <aside className="sticky top-0 z-20 flex h-screen w-[17rem] shrink-0 flex-col border-r border-white/[0.07] bg-ink-900/60 px-3 py-5 backdrop-blur-xl">
       <div className="mb-5 flex items-center gap-3 px-3">
         <Logo />
         <div>
@@ -104,7 +123,7 @@ function Sidebar() {
                     {active && (
                       <motion.span layoutId="nav-active" transition={{ type: "spring", stiffness: 420, damping: 34 }}
                         className="absolute inset-0 rounded-xl border border-ok/20 bg-gradient-to-r from-ok/[0.16] via-brand-cyan/[0.06] to-transparent">
-                        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-ok to-brand-cyan shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
+                        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-ok to-brand-cyan shadow-[0_0_12px_rgb(var(--ok)/0.8)]" />
                       </motion.span>
                     )}
                     <Icon className={cx("relative h-[18px] w-[18px]", active ? "text-ok" : "")} />
@@ -156,9 +175,9 @@ function Logo() {
       <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-ok to-brand-violet opacity-60 blur-md" />
       <div className="relative grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-ok via-brand-cyan to-brand-violet">
         {/* a tiny Merkle tree: root → 2 → 4 */}
-        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="#04060c" strokeWidth="2" strokeLinecap="round">
+        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="rgb(var(--ink-950))" strokeWidth="2" strokeLinecap="round">
           <path d="M12 5v4M12 9l-5 4M12 9l5 4M7 13l-2.5 5M7 13l2.5 5M17 13l-2.5 5M17 13l2.5 5" />
-          <circle cx="12" cy="4.5" r="2" fill="#04060c" />
+          <circle cx="12" cy="4.5" r="2" fill="rgb(var(--ink-950))" />
         </svg>
       </div>
     </div>
@@ -180,11 +199,11 @@ function Palette({ onClose }: { onClose: () => void }) {
   const go = (to: string) => { onClose(); if (to === "/audit") window.open("/audit", "_blank"); else navigate(to); };
 
   return (
-    <motion.div className="fixed inset-0 z-50 flex items-start justify-center bg-ink-950/70 px-4 pt-[14vh] backdrop-blur-sm"
+    <motion.div className="fixed inset-0 z-50 flex items-start justify-center bg-ink-950/60 px-4 pt-[14vh] backdrop-blur-sm"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
       <motion.div initial={{ opacity: 0, y: -12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.98 }}
         transition={{ duration: 0.18 }} onClick={(e) => e.stopPropagation()}
-        className="glass glow-border w-full max-w-xl overflow-hidden bg-ink-900/95">
+        className="glass glow-border w-full max-w-xl overflow-hidden !bg-ink-850 shadow-lift">
         <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-3.5">
           <Search className="h-5 w-5 text-slate-500" />
           <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Jump to a page…"

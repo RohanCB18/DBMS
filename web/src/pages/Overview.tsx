@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight, CalendarClock, Database, GitCommitHorizontal, KeyRound, Layers3, Leaf, Network, RotateCcw, Share2, ShieldCheck, Sparkles,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAction } from "../lib/hooks";
 import { AnimatedNumber, Badge, Button, Card, Hash, Spinner, StatusDot, cx, inputCls } from "../components/ui";
+import { AnimatedGradientText, BorderBeam, DotPattern, NumberTicker, ShinyBadge, SpotlightCard } from "../components/magic";
+import { FlowDiagram } from "../components/FlowDiagram";
 import { MerkleTree } from "../components/MerkleTree";
 import { ago, shortHash } from "../lib/format";
 
@@ -39,24 +41,30 @@ export default function Overview() {
     <>
       {/* ---------------------------------------------------------------- hero */}
       <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-        className="glass glow-border relative mb-6 overflow-hidden p-0">
+        className="glass relative mb-6 overflow-hidden p-0">
+        <BorderBeam size={260} duration={12} />
+        <BorderBeam size={260} duration={12} delay={6} from="var(--cyan)" to="var(--violet)" />
+        <DotPattern className="left-1/2" />
         <div className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full bg-ok/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-28 right-10 h-72 w-72 rounded-full bg-brand-violet/20 blur-3xl" />
-        <div className="relative grid items-center gap-4 lg:grid-cols-[1fr_1.1fr]">
+        <div className="pointer-events-none absolute -bottom-28 right-10 h-72 w-72 rounded-full bg-brand-cyan/15 blur-3xl" />
+        <div className="relative grid items-center gap-4 lg:grid-cols-[1.15fr_1fr]">
           <div className="p-8 lg:p-10">
-            <Badge tone="ok" dot className="mb-5"><Sparkles className="h-3 w-3" /> Git for databases, with cryptographic proof</Badge>
-            <h1 className="font-display text-[2.35rem] font-semibold leading-[1.1] tracking-tight text-white xl:text-[2.6rem]">
-              One number vouches for<br /><span className="text-gradient-brand">every record you ever stored.</span>
-            </h1>
+            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+              <ShinyBadge className="mb-5"><Sparkles className="h-3.5 w-3.5 text-ok" /> Git for databases, with cryptographic proof</ShinyBadge>
+            </motion.div>
+            <motion.h1 initial={{ opacity: 0, y: 10, filter: "blur(8px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.18, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="font-display text-[2.3rem] font-bold leading-[1.1] tracking-tight text-white xl:text-[2.6rem]">
+              One number vouches for<br /><AnimatedGradientText>every record you ever stored.</AnimatedGradientText>
+            </motion.h1>
             <p className="mt-4 max-w-xl text-[15.5px] leading-relaxed text-slate-400">
               Each commit hashes PostgreSQL rows and MongoDB documents into a single Merkle root, chains it in a
               tamper-evident log, and lets you prove one historical fact in zero knowledge — revealing nothing else.
             </p>
             <div className="mt-7 grid max-w-xl grid-cols-2 gap-3 sm:grid-cols-4">
-              <Kpi label="live records" value={s?.records_live} />
-              <Kpi label="commits" value={s?.postgres.commits} />
-              <Kpi label="ZK proofs" value={s?.mongo.proofs} />
-              <Kpi label="dedup" value={s?.mongo.dedup_ratio ?? undefined} prefix="×" />
+              <Kpi label="live records" value={s?.records_live} i={0} />
+              <Kpi label="commits" value={s?.postgres.commits} i={1} />
+              <Kpi label="ZK proofs" value={s?.mongo.proofs} i={2} />
+              <Kpi label="dedup" value={s?.mongo.dedup_ratio ?? undefined} prefix="×" i={3} />
             </div>
           </div>
           <div className="relative h-[320px] px-4 py-4 lg:h-[380px] lg:pl-0 lg:pr-6">
@@ -74,7 +82,7 @@ export default function Overview() {
           {!st ? <Spinner /> : (
             <div className="grid gap-7 2xl:grid-cols-[1.15fr_1fr] md:grid-cols-2">
               <dl className="min-w-0 space-y-3.5 text-[15px]">
-                <Row k="Branch"><span className="rounded-md bg-brand-violet/15 px-2 py-0.5 font-semibold text-violet-200">{st.branch}</span></Row>
+                <Row k="Branch"><span className="rounded-md bg-indigo-400/15 px-2 py-0.5 font-semibold text-indigo-200">{st.branch}</span></Row>
                 <Row k="HEAD commit">
                   <Hash value={st.head} head={16} tail={0} />
                   {head && <div className="mt-0.5 text-sm text-slate-400">“{head.message}”</div>}
@@ -142,6 +150,11 @@ export default function Overview() {
         </Card>
       </div>
 
+      {/* ---------------------------------------------------------------- how a commit flows */}
+      <Card className="mt-6" title="How one commit flows through the three databases" right={<span className="hidden text-xs text-slate-500 md:block">live data path</span>}>
+        <FlowDiagram />
+      </Card>
+
       {/* ---------------------------------------------------------------- three databases */}
       <div className="mt-6 grid gap-6 md:grid-cols-3">
         <DbCard name="PostgreSQL" role="live bank tables · commits · anchor chain" icon={<Database className="h-6 w-6" />} accent="sky" delay={0}
@@ -205,14 +218,15 @@ export default function Overview() {
   );
 }
 
-function Kpi({ label, value, prefix }: { label: string; value?: number; prefix?: string }) {
+function Kpi({ label, value, prefix, i }: { label: string; value?: number; prefix?: string; i: number }) {
   return (
-    <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-3.5 py-3">
-      <div className="font-display text-2xl font-semibold text-white">
-        {prefix}<AnimatedNumber value={value} />
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 + i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+      className="lift rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-3 backdrop-blur">
+      <div className="font-display text-2xl font-bold tracking-tight text-white">
+        {prefix}{typeof value === "number" ? <NumberTicker value={value} delay={0.3 + i * 0.07} /> : "—"}
       </div>
       <div className="text-xs text-slate-500">{label}</div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -249,9 +263,9 @@ function ActionTile({ icon, title, text, onClick, busy, tone }: {
 }
 
 const accents = {
-  sky: { bar: "from-sky-400 to-cyan-300", tile: "bg-sky-400/10 text-sky-300 border-sky-400/25", glow: "bg-sky-400/20" },
-  emerald: { bar: "from-emerald-400 to-teal-300", tile: "bg-ok/10 text-ok border-ok/25", glow: "bg-ok/20" },
-  violet: { bar: "from-violet-400 to-fuchsia-300", tile: "bg-brand-violet/10 text-violet-300 border-brand-violet/25", glow: "bg-brand-violet/20" },
+  sky: { bar: "from-sky-400 to-cyan-300", tile: "bg-sky-400/10 text-sky-300 border-sky-400/25", glow: "bg-sky-400/20", spot: "var(--sky-400)" },
+  emerald: { bar: "from-emerald-400 to-teal-300", tile: "bg-ok/10 text-ok border-ok/25", glow: "bg-ok/20", spot: "var(--ok)" },
+  violet: { bar: "from-indigo-400 to-sky-300", tile: "bg-indigo-400/10 text-indigo-300 border-indigo-400/25", glow: "bg-indigo-400/20", spot: "var(--indigo-400)" },
 };
 
 function DbCard({ name, role, icon, accent, rows, delay, offline }: {
@@ -260,8 +274,8 @@ function DbCard({ name, role, icon, accent, rows, delay, offline }: {
   const a = accents[accent];
   const max = Math.max(1, ...rows.map(([, v]) => (typeof v === "number" ? v : 0)));
   return (
-    <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + delay }}
-      whileHover={{ y: -3 }} className="glass group overflow-hidden p-0">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + delay }}>
+    <SpotlightCard className="lift h-full p-0" color={a.spot}>
       <div className={cx("h-1 w-full bg-gradient-to-r", a.bar)} />
       <div className={cx("pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-0 blur-2xl transition group-hover:opacity-100", a.glow)} />
       <div className="relative p-6">
@@ -292,19 +306,24 @@ function DbCard({ name, role, icon, accent, rows, delay, offline }: {
           </dl>
         )}
       </div>
-    </motion.section>
+    </SpotlightCard>
+    </motion.div>
   );
 }
 
 function QuickLink({ to, icon, title, text }: { to: string; icon: React.ReactNode; title: string; text: string }) {
   return (
-    <Link to={to} className="glass group flex items-center gap-4 p-4 transition hover:border-ok/30">
-      <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-ok/20 to-brand-cyan/10 text-ok">{icon}</span>
-      <span>
-        <span className="block font-medium text-white">{title}</span>
-        <span className="block text-[13px] text-slate-500">{text}</span>
-      </span>
-      <ArrowRight className="ml-auto h-4 w-4 text-slate-600 transition group-hover:translate-x-1 group-hover:text-ok" />
+    <Link to={to} className="block">
+      <SpotlightCard className="lift p-4">
+        <div className="flex items-center gap-4">
+          <span className="grid h-10 w-10 place-items-center rounded-xl border border-ok/20 bg-gradient-to-br from-ok/20 to-brand-cyan/10 text-ok">{icon}</span>
+          <span>
+            <span className="block font-medium text-white">{title}</span>
+            <span className="block text-[13px] text-slate-500">{text}</span>
+          </span>
+          <ArrowRight className="ml-auto h-4 w-4 text-slate-500 transition group-hover:translate-x-1 group-hover:text-ok" />
+        </div>
+      </SpotlightCard>
     </Link>
   );
 }

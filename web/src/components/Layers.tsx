@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, Loader2, ShieldAlert, ShieldCheck, XCircle } from "lucide-react";
 import type { VerifyResult } from "../lib/api";
 import { cx } from "./ui";
 
-const EXPLAIN: Record<string, string> = {
+export const EXPLAIN: Record<string, string> = {
   "1": "Each stored record still hashes (SHA-256) to its content address.",
   "2": "Each Merkle leaf recomputes (Poseidon) from the record + its hiding salt.",
   "3": "The leaves rebuild the Merkle root that PostgreSQL recorded for the commit.",
@@ -25,7 +25,7 @@ export function Layers({ result, stagger = 550 }: { result: VerifyResult; stagge
   return (
     <div className="space-y-3">
       <div className="relative space-y-3">
-      <span className="absolute bottom-8 left-[27px] top-8 w-0.5 overflow-hidden rounded-full bg-white/[0.06]">
+      <span className="absolute bottom-8 left-[27px] top-8 w-0.5 overflow-hidden rounded-full bg-white/[0.08]">
         <motion.span className={cx("block h-full w-full origin-top", result.ok ? "bg-gradient-to-b from-ok to-brand-cyan" : "bg-gradient-to-b from-ok via-amber-300 to-bad")}
           initial={{ scaleY: 0 }} animate={{ scaleY: Math.max(0, shown - 1) / Math.max(1, result.layers.length - 1) }} transition={{ duration: 0.45 }} />
       </span>
@@ -37,11 +37,11 @@ export function Layers({ result, stagger = 550 }: { result: VerifyResult; stagge
           <motion.div key={l.layer} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
             className={cx("relative rounded-2xl border px-4 py-4 backdrop-blur transition-all duration-500",
               !visible ? "border-white/[0.06] bg-white/[0.02]"
-                : l.ok ? "border-ok/30 bg-ok/[0.06] shadow-[0_0_30px_-12px_rgba(52,211,153,0.5)]"
-                  : "border-bad/50 bg-bad/[0.09] shadow-[0_0_40px_-10px_rgba(251,113,133,0.6)]")}>
+                : l.ok ? "border-ok/30 bg-ok/[0.06] shadow-[0_0_30px_-12px_rgb(var(--ok)/0.5)]"
+                  : "border-bad/50 bg-bad/[0.09] shadow-[0_0_40px_-10px_rgb(var(--bad)/0.6)]")}>
             <div className="flex items-center gap-4">
               <span className={cx("relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[11px] font-bold ml-[3px]",
-                !visible ? "border-white/15 bg-ink-900 text-slate-500" : l.ok ? "border-ok bg-ok text-ink-950" : "border-bad bg-bad text-white")}>{n}</span>
+                !visible ? "border-white/15 bg-ink-900 text-slate-500" : l.ok ? "border-ok bg-ok text-ink-950" : "border-bad bg-bad text-paper")}>{n}</span>
               <div className="min-w-0 flex-1">
                 <div className="text-[17px] font-semibold text-white">{name}</div>
                 <div className="text-sm text-slate-400">{EXPLAIN[n]}</div>
@@ -80,7 +80,7 @@ export function Layers({ result, stagger = 550 }: { result: VerifyResult; stagge
             <div className={cx("pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full blur-3xl", result.ok ? "bg-ok/30" : "bg-bad/40")} />
             <div className="relative flex items-center gap-5">
               <motion.div initial={{ rotate: -12, scale: 0.6 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 14 }}
-                className={cx("grid h-16 w-16 shrink-0 place-items-center rounded-2xl", result.ok ? "bg-ok text-ink-950 shadow-glow" : "bg-bad text-white shadow-glow-bad")}>
+                className={cx("grid h-16 w-16 shrink-0 place-items-center rounded-2xl", result.ok ? "bg-ok text-ink-950 shadow-glow" : "bg-bad text-paper shadow-glow-bad")}>
                 {result.ok ? <ShieldCheck className="h-9 w-9" /> : <ShieldAlert className="h-9 w-9" />}
               </motion.div>
               <div className="min-w-0">

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Network, Snowflake, Search, KeyRound } from "lucide-react";
 import { api, type Ring } from "../lib/api";
 import { useAction } from "../lib/hooks";
@@ -118,7 +118,7 @@ function RingDiagram({ ring }: { ring: Ring }) {
     <svg viewBox="0 0 460 400" className="w-full">
       <defs>
         <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M0,0 L10,5 L0,10 z" fill="#f87171" />
+          <path d="M0,0 L10,5 L0,10 z" style={{ fill: "rgb(var(--bad))" }} />
         </marker>
       </defs>
       {ring.transfers.map((t, k) => {
@@ -128,7 +128,7 @@ function RingDiagram({ ring }: { ring: Ring }) {
         const mx = (sx + ex) / 2 - uy * 18, my = (sy + ey) / 2 + ux * 18;
         return (
           <g key={t.txn_id}>
-            <motion.path d={`M${sx},${sy} Q${mx},${my} ${ex},${ey}`} fill="none" stroke="#f87171" strokeWidth={2.5} markerEnd="url(#arr)"
+            <motion.path d={`M${sx},${sy} Q${mx},${my} ${ex},${ey}`} fill="none" style={{ stroke: "rgb(var(--bad))" }} strokeWidth={2.5} markerEnd="url(#arr)" strokeLinecap="round"
               initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.3 + k * 0.35, duration: 0.5 }} />
             <text x={mx} y={my} textAnchor="middle" className="fill-amber-200" fontSize="12">{inr(t.amount)}</text>
           </g>
@@ -136,7 +136,8 @@ function RingDiagram({ ring }: { ring: Ring }) {
       })}
       {ring.accounts.map((a, i) => (
         <g key={a}>
-          <circle cx={pos[i][0]} cy={pos[i][1]} r={32} fill="#131c28" stroke={ring.statuses[i] === "FROZEN" ? "#38bdf8" : "#f87171"} strokeWidth={2.5} />
+          <circle cx={pos[i][0]} cy={pos[i][1]} r={40} style={{ fill: ring.statuses[i] === "FROZEN" ? "rgb(var(--sky-400) / 0.10)" : "rgb(var(--bad) / 0.08)" }} className="animate-pulse" />
+          <circle cx={pos[i][0]} cy={pos[i][1]} r={32} strokeWidth={2.5} style={{ fill: "rgb(var(--ink-850))", stroke: ring.statuses[i] === "FROZEN" ? "rgb(var(--sky-400))" : "rgb(var(--bad))" }} />
           <text x={pos[i][0]} y={pos[i][1] - 2} textAnchor="middle" fontSize="11" className="fill-slate-200 font-mono">…{String(a).slice(-4)}</text>
           <text x={pos[i][0]} y={pos[i][1] + 12} textAnchor="middle" fontSize="9" className="fill-slate-400">{ring.statuses[i]}</text>
           <text x={labelPos[i][0]} y={labelPos[i][1]} textAnchor="middle" fontSize="13" className="fill-slate-300">{ring.owners[i]}</text>

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Background, Controls, Handle, MarkerType, Position, ReactFlow, type Edge, type Node, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { GitBranch, GitCompare, KeyRound, RotateCcw, ShieldCheck, X, GitBranchPlus } from "lucide-react";
 import { api, type GraphData } from "../lib/api";
 import { useAction } from "../lib/hooks";
@@ -11,7 +11,9 @@ import { Badge, Button, Card, ErrorBox, Hash, PageHeader, Spinner, inputCls } fr
 import { useVersionLabels } from "../components/CommitPicker";
 import { when } from "../lib/format";
 
-const LANE_COLORS = ["#34d399", "#a78bfa", "#38bdf8", "#fbbf24", "#f472b6", "#fb923c"];
+// theme-aware lane colours (CSS variables), mixed with transparency via color-mix
+const LANE_COLORS = ["rgb(var(--ok))", "rgb(var(--indigo-400))", "rgb(var(--sky-400))", "rgb(var(--amber-400))", "rgb(var(--rose-400))", "rgb(var(--orange-400))"];
+const mix = (c: string, pct: number) => `color-mix(in srgb, ${c} ${pct}%, transparent)`;
 
 type CommitNodeData = GraphData["nodes"][number] & { heads: string[]; color: string; label: string; selected: boolean; isHead: boolean };
 
@@ -19,10 +21,10 @@ function CommitNode({ data }: NodeProps<Node<CommitNodeData>>) {
   return (
     <div className="relative w-[300px] overflow-hidden rounded-xl border px-3.5 py-2.5 pl-4 text-left backdrop-blur transition-all duration-300 hover:-translate-y-0.5"
       style={{
-        borderColor: data.selected || data.isHead ? data.color : "rgba(255,255,255,0.09)",
-        background: `linear-gradient(135deg, ${data.color}${data.isHead ? "26" : "12"}, rgba(12,18,33,0.92) 55%)`,
-        boxShadow: data.selected ? `0 0 0 2px ${data.color}66, 0 12px 30px -10px ${data.color}88`
-          : data.isHead ? `0 10px 34px -12px ${data.color}aa` : "0 8px 24px -14px rgba(0,0,0,0.9)",
+        borderColor: data.selected || data.isHead ? data.color : "rgb(var(--ink-700))",
+        background: `linear-gradient(135deg, ${mix(data.color, data.isHead ? 16 : 8)}, rgb(var(--ink-850) / 0.94) 55%)`,
+        boxShadow: data.selected ? `0 0 0 2px ${mix(data.color, 40)}, 0 12px 30px -10px ${mix(data.color, 55)}`
+          : data.isHead ? `0 10px 34px -12px ${mix(data.color, 65)}` : "var(--shadow-panel)",
       }}>
       <span className="absolute inset-y-0 left-0 w-[3px]" style={{ background: data.color }} />
       <Handle type="target" position={Position.Bottom} className="!opacity-0" />
@@ -93,7 +95,7 @@ export default function HistoryPage() {
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.2, maxZoom: 1.1 }}
               minZoom={0.2} nodesDraggable={false} nodesConnectable={false} proOptions={{ hideAttribution: true }}
               onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)}>
-              <Background color="#28334d" gap={24} size={1.2} />
+              <Background color="rgb(var(--slate-400) / 0.35)" gap={24} size={1.2} />
               <Controls showInteractive={false} />
             </ReactFlow>
           )}

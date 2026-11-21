@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Database, Eye, GitCommitHorizontal, GitCompare, History, Lock, PenLine, Play, ShieldAlert, Terminal } from "lucide-react";
 import { api, ApiError, type LiveSqlResult, type SqlResult } from "../lib/api";
 import { useAction } from "../lib/hooks";

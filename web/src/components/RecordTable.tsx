@@ -45,7 +45,7 @@ export function RecordTable({ rows, keyOf, highlight, onRowClick, maxHeight = "6
               <Fragment key={k}>
                 <tr onClick={() => (onRowClick ? onRowClick(r) : setOpen(open === k ? null : k))}
                   className={cx("cursor-pointer border-t border-white/[0.04] transition-colors hover:bg-white/[0.04]",
-                    h === "added" && "bg-ok/[0.08] shadow-[inset_3px_0_0_#34d399]", h === "modified" && "bg-amber-400/[0.08] shadow-[inset_3px_0_0_#fcd34d]")}>
+                    h === "added" && "bg-ok/[0.08] shadow-[inset_3px_0_0_rgb(var(--ok))]", h === "modified" && "bg-amber-400/[0.08] shadow-[inset_3px_0_0_rgb(var(--amber-300))]")}>
                   {cols.map((c) => (
                     <td key={c} className={cx("whitespace-nowrap px-3.5 py-2.5", c.endsWith("_id") || c === "_id" || c === "key" ? "font-mono text-[13px] text-slate-300" : "text-slate-200")}>
                       {render(c, r[c])}

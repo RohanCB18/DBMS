@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { KeyRound, Route, Search, Trash2 } from "lucide-react";
 import { api } from "../lib/api";
 import { Badge, Button, Card, Empty, ErrorBox, Hash, PageHeader, Spinner, inputCls } from "../components/ui";

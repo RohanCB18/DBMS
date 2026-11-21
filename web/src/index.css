@@ -3,56 +3,77 @@
 @tailwind utilities;
 
 html { font-size: 16px; -webkit-font-smoothing: antialiased; }
-body { background: #04060c; min-height: 100vh; }
-::selection { background: rgba(52, 211, 153, 0.3); }
+body { background: var(--page); min-height: 100vh; transition: background-color 0.3s ease; }
+::selection { background: rgb(var(--ok) / 0.28); }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: #28334d; border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background: #3a4766; background-clip: padding-box; border: 2px solid transparent; }
+::-webkit-scrollbar-thumb { background: rgb(var(--ink-600)); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--ink-500)); background-clip: padding-box; border: 2px solid transparent; }
 ::-webkit-scrollbar-track { background: transparent; }
-select option { background: #0c1221; }
+select option { background: rgb(var(--ink-850)); color: rgb(var(--slate-100)); }
+:focus-visible { outline: 2px solid rgb(var(--ok) / 0.7); outline-offset: 2px; border-radius: 8px; }
+button:not(:disabled), a, select, [role="button"] { cursor: pointer; }
+
+/* Smooth cross-fade of every colour when the theme toggles (added only during the switch). */
+.theme-switching, .theme-switching *, .theme-switching *::before, .theme-switching *::after {
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease, fill 0.35s ease, stroke 0.35s ease, box-shadow 0.35s ease !important;
+}
 
 @layer components {
-  /* Glass panel: translucent fill, hairline border, top highlight */
+  /* Glass panel: translucent fill, hairline border, soft shadow (paper card in light mode) */
   .glass {
-    @apply relative rounded-2xl border border-white/[0.07] shadow-panel backdrop-blur-xl;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+    @apply relative rounded-2xl border border-white/[0.08] shadow-panel backdrop-blur-xl;
+    background: linear-gradient(180deg, var(--glass-a), var(--glass-b));
   }
+  .light .glass { border-color: rgb(var(--ink-700)); }
   /* Gradient hairline border (used for emphasised panels) */
   .glow-border { position: relative; }
   .glow-border::before {
     content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
-    background: linear-gradient(135deg, rgba(52, 211, 153, 0.55), rgba(34, 211, 238, 0.25) 40%, rgba(167, 139, 250, 0.45));
+    background: linear-gradient(135deg, rgb(var(--ok) / 0.6), rgb(var(--cyan) / 0.25) 45%, rgb(var(--violet) / 0.5));
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor; mask-composite: exclude;
   }
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(100deg, #ffffff 0%, #c7f9e5 35%, #67e8f9 70%, #c4b5fd 100%);
+    background-image: linear-gradient(100deg, rgb(var(--white)) 0%, rgb(var(--white)) 45%, rgb(var(--emerald-300)) 75%, rgb(var(--sky-300)) 100%);
   }
   .text-gradient-brand {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(100deg, #34d399, #22d3ee 55%, #a78bfa);
+    background-image: linear-gradient(100deg, rgb(var(--ok)), rgb(var(--cyan)) 60%, rgb(var(--violet)));
   }
   .hazard {
-    background-image: repeating-linear-gradient(-45deg, rgba(251, 113, 133, 0.16) 0 10px, transparent 10px 20px);
+    background-image: repeating-linear-gradient(-45deg, rgb(var(--bad) / 0.14) 0 10px, transparent 10px 20px);
   }
   .skeleton {
     @apply animate-shimmer rounded-lg;
-    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+    background: linear-gradient(90deg, rgb(var(--white) / 0.03) 25%, rgb(var(--white) / 0.08) 50%, rgb(var(--white) / 0.03) 75%);
     background-size: 200% 100%;
+  }
+  /* Bento tile hover: gentle lift */
+  .lift { transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease; }
+  .lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+  .dot-pattern {
+    background-image: radial-gradient(rgb(var(--slate-400) / 0.18) 1px, transparent 1px);
+    background-size: 18px 18px;
   }
 }
 
 /* App backdrop: slow aurora blobs + a faint grid that fades out towards the edges */
-.backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: #04060c; }
+.backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--page); transition: background-color 0.3s ease; }
 .backdrop .blob { position: absolute; border-radius: 9999px; filter: blur(90px); opacity: 0.5; }
+.light .backdrop .blob { opacity: 0.55; filter: blur(110px); }
 .backdrop .grid-lines {
   position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+    linear-gradient(rgb(var(--slate-400) / 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--slate-400) / 0.07) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+}
+.light .backdrop .grid-lines {
+  background-image:
+    linear-gradient(rgb(15 23 42 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(15 23 42 / 0.05) 1px, transparent 1px);
 }
 .backdrop .noise {
   position: absolute; inset: 0; opacity: 0.035; mix-blend-mode: overlay;
@@ -63,8 +84,9 @@ select option { background: #0c1221; }
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }
 
-/* React Flow, dark */
+/* React Flow, both themes */
 .react-flow__attribution { display: none; }
-.react-flow__controls { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
-.react-flow__controls button { background: #0c1221; border-color: #1a2439; fill: #cbd5e1; }
-.react-flow__controls button:hover { background: #111a2c; }
+.react-flow__controls { border-radius: 12px; overflow: hidden; border: 1px solid rgb(var(--ink-700)); box-shadow: var(--shadow-panel) !important; }
+.react-flow__controls button { background: rgb(var(--ink-850)); border-color: rgb(var(--ink-700)); fill: rgb(var(--slate-300)); }
+.react-flow__controls button:hover { background: rgb(var(--ink-800)); }
+.react-flow__minimap { background: rgb(var(--ink-850)) !important; border-radius: 12px; overflow: hidden; border: 1px solid rgb(var(--ink-700)); }

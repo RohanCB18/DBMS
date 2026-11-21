@@ -5,7 +5,7 @@
 //      cannot show one claim while the proof is about another)
 // The anchor checks then ask the bank's public transparency log (and the external copy).
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle2, EyeOff, FileJson, Loader2, Scale, Upload, XCircle, PenLine, RotateCcw } from "lucide-react";
 import { api, type ProofPackage } from "../lib/api";
 import { bindClaim, groth16Verify, type ClaimCheck } from "../lib/zk";
@@ -87,7 +87,7 @@ export default function Auditor() {
     ? (steps.every((x) => x.state === "ok" || x.state === "skip") && steps.slice(0, 2).every((x) => x.state === "ok") ? "valid" : "invalid") : null;
 
   return (
-    <div className="min-h-screen bg-[#f4f1ea] text-slate-900">
+    <div className="palette-native min-h-screen bg-[#f4f1ea] text-slate-900">
       <header className="border-b border-slate-300 bg-white">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-6 py-4">
           <Scale className="h-7 w-7 text-indigo-700" />

@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useCallback, useContext, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, XCircle, Info } from "lucide-react";
 
 type Tone = "ok" | "bad" | "info";

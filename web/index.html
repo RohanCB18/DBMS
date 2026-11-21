@@ -1,16 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" />
-    <meta name="theme-color" content="#04060c" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700;800&display=swap" />
+    <meta name="theme-color" content="#0a0f1c" />
     <title>ZK-TemporalDB</title>
+    <script>
+      // Apply the saved (or OS) theme before first paint so there is no flash.
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem("ztdb-theme"); } catch (e) {}
+        if (t !== "light" && t !== "dark") t = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        var r = document.documentElement;
+        r.classList.remove("light", "dark");
+        r.classList.add(t);
+      })();
+    </script>
   </head>
-  <body class="bg-ink-950 text-slate-200 antialiased">
+  <body class="text-slate-200 antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

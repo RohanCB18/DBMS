@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { Ban, Database, EyeOff, Leaf, Play, ShieldCheck, Skull, Terminal, Undo2 } from "lucide-react";
 import { api, type VerifyResult } from "../lib/api";
 import { useAction } from "../lib/hooks";
@@ -52,7 +52,7 @@ export default function TamperLab() {
       <AnimatePresence mode="wait">
         {attack && (
           <motion.div key={attack.mode + (attack.attack ?? "")} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className={cx("mt-6 overflow-hidden rounded-2xl border", undo ? "border-ok/30 bg-ok/[0.04]" : "border-bad/40 bg-ink-950/80 shadow-[0_0_60px_-20px_rgba(251,113,133,0.55)]")}>
+            className={cx("mt-6 overflow-hidden rounded-2xl border", undo ? "border-ok/30 bg-ok/[0.04]" : "border-bad/40 bg-ink-950/80 shadow-[0_0_60px_-20px_rgb(var(--bad)/0.55)]")}>
             <div className={cx("flex items-center gap-2 border-b px-5 py-2.5 font-mono text-xs", undo ? "border-ok/20 text-ok" : "border-bad/30 bg-bad/[0.08] text-rose-300")}>
               <Terminal className="h-4 w-4" /> {undo ? "restore.log" : "intrusion.log"}
               <span className="ml-auto flex gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-bad/70" /><i className="h-2.5 w-2.5 rounded-full bg-amber-300/70" /><i className="h-2.5 w-2.5 rounded-full bg-ok/70" /></span>

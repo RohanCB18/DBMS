@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { shortHash } from "../lib/format";
 
 /**
@@ -34,10 +34,10 @@ export function MerkleTree({ root }: { root?: string | null }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" aria-label="Merkle tree: records hash pairwise up to one root">
       <defs>
         <linearGradient id="mt-hot" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stopColor="#22d3ee" /><stop offset="100%" stopColor="#34d399" />
+          <stop offset="0%" style={{ stopColor: "rgb(var(--cyan))" }} /><stop offset="100%" style={{ stopColor: "rgb(var(--ok))" }} />
         </linearGradient>
         <radialGradient id="mt-root" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#34d399" stopOpacity="0.55" /><stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+          <stop offset="0%" style={{ stopColor: "rgb(var(--ok))", stopOpacity: 0.5 }} /><stop offset="100%" style={{ stopColor: "rgb(var(--ok))", stopOpacity: 0 }} />
         </radialGradient>
         <filter id="mt-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b" />
           <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
@@ -46,7 +46,7 @@ export function MerkleTree({ root }: { root?: string | null }) {
       {/* edges */}
       {edges.map((e) => (
         <g key={e.key}>
-          <line x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="rgba(148,163,184,0.2)" strokeWidth={1.5} />
+          <line x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} style={{ stroke: "rgb(var(--slate-400) / 0.3)" }} strokeWidth={1.5} />
           {e.hot && (
             <line x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="url(#mt-hot)" strokeWidth={2.5}
               strokeDasharray="6 6" className="animate-flow" filter="url(#mt-glow)" />
@@ -66,10 +66,10 @@ export function MerkleTree({ root }: { root?: string | null }) {
             <motion.g key={`n${level}-${i}`} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.15 + (3 - level) * 0.12 + i * 0.03 }} style={{ transformOrigin: `${xOf(level, i)}px ${Y[level]}px` }}>
               <circle cx={xOf(level, i)} cy={Y[level]} r={r}
-                fill={hotNode ? "#0c2a26" : "#0c1221"} stroke={hotNode ? "#34d399" : "rgba(148,163,184,0.35)"} strokeWidth={hotNode ? 2 : 1.25}
-                filter={hotNode ? "url(#mt-glow)" : undefined} style={{ transition: "all .4s" }} />
+                strokeWidth={hotNode ? 2 : 1.25} filter={hotNode ? "url(#mt-glow)" : undefined}
+                style={{ transition: "all .4s", fill: hotNode ? "rgb(var(--ok-dim) / 0.55)" : "rgb(var(--ink-850))", stroke: hotNode ? "rgb(var(--ok))" : "rgb(var(--slate-400) / 0.45)" }} />
               <text x={xOf(level, i)} y={Y[level] + 4} textAnchor="middle" fontSize={level === 0 ? 10.5 : 9.5}
-                fontFamily="JetBrains Mono, monospace" fill={hotNode ? "#a7f3d0" : "#64748b"}>
+                fontFamily="Fira Code, monospace" fontWeight={600} style={{ fill: hotNode ? "rgb(var(--emerald-200))" : "rgb(var(--slate-500))" }}>
                 {level === 0 ? "ROOT" : "H"}
               </text>
             </motion.g>
@@ -81,17 +81,16 @@ export function MerkleTree({ root }: { root?: string | null }) {
       {LEAVES.map((db, i) => {
         const hotLeaf = i === hot;
         const x = xOf(3, i);
-        const color = db === "PG" ? "#38bdf8" : "#34d399";
+        const color = db === "PG" ? "rgb(var(--sky-400))" : "rgb(var(--ok))";
         return (
           <motion.g key={`leaf${i}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 + i * 0.04 }}>
             <rect x={x - 25} y={Y[3] - 16} width={50} height={32} rx={8}
-              fill={hotLeaf ? "rgba(34,211,238,0.15)" : "rgba(255,255,255,0.03)"}
-              stroke={hotLeaf ? "#22d3ee" : "rgba(148,163,184,0.25)"} strokeWidth={hotLeaf ? 1.75 : 1}
-              filter={hotLeaf ? "url(#mt-glow)" : undefined} style={{ transition: "all .4s" }} />
-            <circle cx={x - 13} cy={Y[3]} r={3.5} fill={color} />
-            <text x={x + 4} y={Y[3] + 4} textAnchor="middle" fontSize={11.5} fontFamily="JetBrains Mono, monospace" fill="#e2e8f0">{db}</text>
+              strokeWidth={hotLeaf ? 1.75 : 1} filter={hotLeaf ? "url(#mt-glow)" : undefined}
+              style={{ transition: "all .4s", fill: hotLeaf ? "rgb(var(--cyan) / 0.15)" : "rgb(var(--ink-850) / 0.9)", stroke: hotLeaf ? "rgb(var(--cyan))" : "rgb(var(--slate-400) / 0.35)" }} />
+            <circle cx={x - 13} cy={Y[3]} r={3.5} style={{ fill: color }} />
+            <text x={x + 4} y={Y[3] + 4} textAnchor="middle" fontSize={11.5} fontFamily="Fira Code, monospace" style={{ fill: "rgb(var(--slate-200))" }}>{db}</text>
             {hotLeaf && (
-              <motion.text key={hot} x={Math.min(Math.max(x, 44), W - 44)} y={Y[3] + 33} textAnchor="middle" fontSize={11} fill="#67e8f9"
+              <motion.text key={hot} x={Math.min(Math.max(x, 44), W - 44)} y={Y[3] + 33} textAnchor="middle" fontSize={11} style={{ fill: "rgb(var(--cyan))" }}
                 initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 1, 0] }} transition={{ duration: 2.4 }}>
                 record changed
               </motion.text>
@@ -101,8 +100,8 @@ export function MerkleTree({ root }: { root?: string | null }) {
       })}
 
       {/* root label */}
-      <text x={xOf(0, 0) + 30} y={Y[0] - 10} fontSize={11} fill="#94a3b8">Merkle root of HEAD</text>
-      <text x={xOf(0, 0) + 30} y={Y[0] + 7} fontSize={12.5} fontFamily="JetBrains Mono, monospace" fill="#fde68a">
+      <text x={xOf(0, 0) + 30} y={Y[0] - 10} fontSize={11} style={{ fill: "rgb(var(--slate-400))" }}>Merkle root of HEAD</text>
+      <text x={xOf(0, 0) + 30} y={Y[0] + 7} fontSize={12.5} fontFamily="Fira Code, monospace" style={{ fill: "rgb(var(--amber-200))" }}>
         {root ? shortHash(root, 12, 6) : "—"}
       </text>
     </svg>
