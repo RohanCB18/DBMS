@@ -7,7 +7,6 @@
     python cli.py branch [NAME] [--start REF]
     python cli.py checkout NAME
     python cli.py restore REF [--hard]
-    python cli.py merge SOURCE [--resolve "customers:7|phone=theirs"] [--dry-run]
     python cli.py verify [REF]
     python cli.py prove --ref main --table transactions --pk 100600 --field status --op eq --value COMPLETED -o proof.json
     python cli.py audit proof.json
@@ -15,7 +14,7 @@
     python cli.py exec "UPDATE customers SET phone = '9811100007' WHERE customer_id = 7" [--preview]
     python cli.py rings
     python cli.py stats
-    python cli.py demo reset | business-day | tamper blob|root|undo | scenario clean|conflict
+    python cli.py demo reset | business-day | tamper blob|root|undo
 
 API address: --api option or ZTDB_API env var (default http://localhost:8100).
 """
@@ -105,9 +104,8 @@ def log(branch: Optional[str] = typer.Argument(None), limit: int = 20):
     for col in ("commit", "branch", "when", "author", "message", "parents", "anchor"):
         t.add_column(col)
     for r in rows:
-        merge = len(r["parents"]) > 1
         t.add_row(f"[yellow]{r['commit_id']}[/yellow]", r["branch_name"], r["created_at"][:19].replace("T", " "),
-                  r["author"], ("[magenta]⑂ [/magenta]" if merge else "") + r["message"],
+                  r["author"], r["message"],
                   ", ".join(p[:8] for p in r["parents"]), f"#{r['anchor_seq']}")
     con.print(t)
 
@@ -153,31 +151,6 @@ def restore(ref: str, hard: bool = typer.Option(False, "--hard", help="also move
     _, r = call("POST", "/restore", json={"ref": ref, "force": force, "move_head": hard})
     con.print(f"restored {r['records']} records from {r['restored']}" +
               (f"; branch {r['branch_moved']} now points there" if r.get("branch_moved") else ""))
-
-
-@app.command()
-def merge(source: str, resolve: list[str] = typer.Option([], "--resolve", help='"key|field=ours|theirs" (repeatable)'),
-          dry_run: bool = typer.Option(False, "--dry-run"), message: Optional[str] = typer.Option(None, "-m")):
-    """Three-way merge SOURCE into the current branch."""
-    res = {}
-    for item in resolve:
-        k, _, v = item.rpartition("=")
-        res[k] = v
-    code, r = call("POST", "/merge", ok=(200, 409),
-                   json={"source": source, "resolutions": res or None, "dry_run": dry_run, "message": message})
-    if code == 409:
-        con.print(f"[bold red]{r['error']}[/bold red]  (base {short(r.get('base'))})")
-        t = Table("key", "field", "base", "ours", "theirs")
-        for c in r.get("conflicts", []):
-            t.add_row(c["key"], str(c["field"]), str(c["base"]), f"[cyan]{c['ours']}[/cyan]", f"[magenta]{c['theirs']}[/magenta]")
-        con.print(t)
-        con.print('resolve with e.g. --resolve "customers:7|phone=theirs"')
-        raise typer.Exit(1)
-    if r["result"] == "merged":
-        con.print(f"[green]merged[/green] {source} → {r['branch']}: commit {r['commit_id']} "
-                  f"(parents {short(r['ours'])}, {short(r['theirs'])}; {r['conflicts_resolved']} conflicts resolved)")
-    else:
-        con.print(f"[cyan]{r['result']}[/cyan] {json.dumps({k: v for k, v in r.items() if k != 'conflicts'})}")
 
 
 @app.command()
@@ -293,13 +266,6 @@ def demo_business_day():
 def demo_tamper(mode: str = typer.Argument(..., help="blob | root | undo")):
     _, r = call("POST", "/demo/tamper", json={"mode": mode})
     con.print_json(data=r)
-
-
-@demo_app.command("scenario")
-def demo_scenario(mode: str = typer.Argument(..., help="clean | conflict")):
-    _, r = call("POST", "/demo/merge-scenario", json={"mode": mode})
-    con.print(f"branch [cyan]{r['source_branch']}[/cyan] diverged from {r['target_branch']} — now run: "
-              f"python cli.py merge {r['source_branch']}")
 
 
 if __name__ == "__main__":

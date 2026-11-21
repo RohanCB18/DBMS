@@ -1,7 +1,7 @@
 # ZK-TemporalDB
 
 > **Git for databases, with cryptographic proof.**
-> Commit, diff, branch, merge, time-travel and restore a multi-database system — and prove what a
+> Commit, diff, branch, time-travel and restore a multi-database system — and prove what a
 > past record said to an outsider *without revealing anything else*.
 
 Normal backups answer *"can I recover old data?"*. ZK-TemporalDB answers *"can I **prove** what the
@@ -9,8 +9,8 @@ data looked like, without exposing everything?"* — useful for banks proving ol
 auditors, hospitals proving consent records, e-commerce price disputes, and legal evidence.
 
 **Status: feature-complete for the demo.** Backend, cryptography, the three databases, the web
-dashboard, the auditor portal, merge, live and time-travel SQL, fraud-ring analytics, CLI and external
-anchoring all work end-to-end (`api/scripts/demo_flow.py`: 29 checks). Cloud deployment is
+dashboard, the auditor portal, live and time-travel SQL, fraud-ring analytics, CLI and external
+anchoring all work end-to-end (`api/scripts/demo_flow.py`: 24 checks). Cloud deployment is
 optional and not done — see [HANDOFF.md](HANDOFF.md).
 
 ## How it works
@@ -18,7 +18,7 @@ optional and not done — see [HANDOFF.md](HANDOFF.md).
 ```
         React dashboard (:8090)                      Auditor portal (/audit)
         overview · history DAG · diff · verify ·      verifies Groth16 proofs IN THE BROWSER,
-        tamper lab · prove · merge · SQL · fraud      re-encodes the claim itself
+        tamper lab · prove · SQL · fraud rings        re-encodes the claim itself
                                   │
                      FastAPI  (api/, Python)  ── http://localhost:8100/docs      ztdb CLI (api/cli.py)
         ┌──────────────┬──────────┴────────┬──────────────────────┐
@@ -39,8 +39,8 @@ optional and not done — see [HANDOFF.md](HANDOFF.md).
 4. **Prove** — a Circom circuit (Groth16, ~12.5k constraints) proves
    *"record X in commit C has field F = / ≥ / ≤ V"* while hiding all other fields, all other
    records and (for ranges) the value itself. Proofs are ~720 bytes and verify in milliseconds.
-5. **Branch & merge** — three-way, record- and field-level merge with conflict resolution;
-   merge commits have two parents.
+5. **Branches & restore** — named timelines of the database; check out a branch, or restore /
+   reset to any earlier commit.
 6. **SQL console** — change the *working* bank data with ordinary `INSERT` / `UPDATE` / `DELETE`
    (or the bank's stored procedures) as a least-privilege role, then commit it; or materialise any
    past commit into its own schema and query it with `SELECT`s as a read-only role.
@@ -75,8 +75,8 @@ The SQL files in `db/postgres` run only on a fresh volume — after changing the
 ## Testing
 
 ```bash
-cd api && .venv/Scripts/python -m pytest -q          # 58 unit tests (no databases needed)
-cd api && .venv/Scripts/python scripts/demo_flow.py   # end-to-end demo, 29 checks (stack running)
+cd api && .venv/Scripts/python -m pytest -q          # 49 unit tests (no databases needed)
+cd api && .venv/Scripts/python scripts/demo_flow.py   # end-to-end demo, 24 checks (stack running)
 cd web && npm test                                   # browser claim encoding == zk-service encoding
 cd zk-service && npm test                            # circuit self-test (true/false claims)
 ```
@@ -95,7 +95,6 @@ python cli.py diff <a> [<b>|WORKING]
 python cli.py verify main
 python cli.py prove --table transactions --pk 100600 --field status --value COMPLETED -o proof.json
 python cli.py audit proof.json
-python cli.py merge audit-fix --resolve "customers:7|phone=theirs"
 python cli.py sql main "SELECT status, count(*) FROM transactions GROUP BY status"
 python cli.py exec "UPDATE customers SET phone = '9811100007' WHERE customer_id = 7" [--preview]
 python cli.py rings
@@ -115,7 +114,7 @@ python cli.py rings
 ```
 circuits/       record_claim.circom + build.mjs (compile + Groth16 trusted setup)
 zk-service/     Node: Poseidon Merkle tree, prove/verify; artifacts/ = wasm, zkey, verification key
-api/app/        FastAPI: vcs.py (commit/diff/restore/merge/verify), merge.py (3-way merge), proofs.py,
+api/app/        FastAPI: vcs.py (commit/diff/restore/branches/verify), proofs.py,
                 sqlconsole.py (time-travel SQL), livesql.py (live SQL edits), analytics.py + graph.py (Neo4j), anchoring.py,
                 stats.py, demo.py, canonical.py
 api/cli.py      ztdb command-line client
@@ -139,7 +138,6 @@ HANDOFF.md      demo script, gotchas, known limitations, what is left (deploymen
 | GET/POST | `/api/branches` | list / create branch |
 | POST | `/api/checkout` | switch branch (restores its head) |
 | POST | `/api/restore` | `{ref, force, move_head}` reset live DB to any commit (optionally move the branch) |
-| POST | `/api/merge` | `{source, resolutions?, dry_run?}` three-way merge; 409 + conflict list |
 | POST | `/api/sql` | `{ref, query}` read-only SELECT against a past commit |
 | POST | `/api/sql/live` | `{query, preview?, allow_full_table?}` INSERT / UPDATE / DELETE / SELECT on the working bank tables |
 | POST | `/api/verify/{ref}` · GET `/api/verify-runs` | integrity check / history |
@@ -151,4 +149,4 @@ HANDOFF.md      demo script, gotchas, known limitations, what is left (deploymen
 | GET | `/api/graph/fraud-rings?ref=&min_amount_inr=&max_hours=` | cycles in the money-flow graph |
 | GET | `/api/stats` | counts across the three databases, dedup ratio |
 | GET | `/api/live/{table}` | live rows (`transactions`, `accounts`, `customers`, `bank_branches`, `kyc_documents`) |
-| POST | `/api/demo/reset` · `business-day` · `tamper` · `merge-scenario` · `freeze` | demo controls (`ZTDB_DEMO_MODE`) |
+| POST | `/api/demo/reset` · `business-day` · `tamper` · `tamper-sql` · `freeze` | demo controls (`ZTDB_DEMO_MODE`) |

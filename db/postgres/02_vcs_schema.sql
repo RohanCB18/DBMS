@@ -3,7 +3,7 @@
 --   vcs.branches        named pointers to commits
 --   vcs.head            which branch the working database is on
 --   vcs.commits         one row per commit, holding its Merkle root
---   vcs.commit_parents  commit DAG edges (M:N, so merges have 2 parents)
+--   vcs.commit_parents  commit DAG edges (each commit -> its parent)
 --   vcs.anchors         append-only hash chain of roots (transparency log)
 --   vcs.change_log      row-level audit of uncommitted changes (trigger-fed)
 --   vcs.verification_runs  history of integrity checks
@@ -200,16 +200,6 @@ RETURNS TABLE (commit_id CHAR(16), depth INTEGER) AS $$
         FROM anc JOIN vcs.commit_parents cp ON cp.commit_id = anc.commit_id
     )
     SELECT commit_id, MIN(depth)::INTEGER FROM anc GROUP BY commit_id;
-$$ LANGUAGE sql STABLE;
-
--- Lowest common ancestor of two commits — the base of a three-way merge.
-CREATE OR REPLACE FUNCTION vcs.fn_merge_base(p_a CHAR(16), p_b CHAR(16))
-RETURNS CHAR(16) AS $$
-    SELECT a.commit_id
-    FROM vcs.fn_ancestors(p_a) a
-    JOIN vcs.fn_ancestors(p_b) b USING (commit_id)
-    ORDER BY a.depth + b.depth, a.commit_id
-    LIMIT 1;
 $$ LANGUAGE sql STABLE;
 
 CREATE OR REPLACE VIEW vcs.v_commit_log AS

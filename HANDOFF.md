@@ -12,11 +12,11 @@ It says what exists, how to run and present it, the traps already discovered, an
 
 | Check | Result |
 |---|---|
-| `python api/scripts/demo_flow.py` (end-to-end, stack running) | **29/29 checks pass** |
-| `pytest` in `api/` (no databases needed) | 58 passed |
+| `python api/scripts/demo_flow.py` (end-to-end, stack running) | **24/24 checks pass** |
+| `pytest` in `api/` (no databases needed) | 49 passed |
 | `npm test` in `web/` (browser claim encoding == zk-service encoding) | 14 passed |
 | `npm test` in `zk-service/` (circuit: true claims prove, false claims cannot) | passes |
-| Web UI walked through in a browser: prove → auditor portal (browser verification) → forged claim rejected; tamper → verify red; merge with conflict resolution; SQL; fraud ring | works |
+| Web UI walked through in a browser: prove → auditor portal (browser verification) → forged claim rejected; tamper → verify red; SQL; fraud ring | works |
 
 | Area | What | Where |
 |---|---|---|
@@ -25,16 +25,16 @@ It says what exists, how to run and present it, the traps already discovered, an
 | PostgreSQL | 3NF bank schema, VCS schema, triggers, stored procedures, recursive CTEs, anchor hash chain, read-only console role, snapshot schemas | `db/postgres/` |
 | MongoDB | live KYC; content-addressed blobs, tree manifests, proof packages, external-anchor log | `api/app/vcs.py`, `proofs.py`, `anchoring.py` |
 | Neo4j | commit DAG, record lineage, proof graph, **money-flow graph + fraud-ring query** | `api/app/graph.py`, `analytics.py` |
-| Version control | commit, status, log, diff, snapshots, restore (`move_head` = reset --hard), branches, checkout, **three-way merge** | `api/app/vcs.py`, `merge.py` |
+| Version control | commit, status, log, diff, snapshots, restore (`move_head` = reset --hard), branches, checkout | `api/app/vcs.py` |
 | Integrity | 4-layer verify (+ layer 5 when external anchoring is on), pinpointing, run history | `vcs.verify` |
 | Proofs | packages, auditor verification, plain Merkle inclusion proof | `api/app/proofs.py` |
 | Time-travel SQL | `snap_<commit>` schemas (LRU 5), `ztdb_reader` role, READ ONLY, 3 s timeout, 500 rows | `api/app/sqlconsole.py` |
 | External anchoring | `ZTDB_EXTERNAL_ANCHOR=off|file|github` | `api/app/anchoring.py` |
-| Hardening | advisory lock around commit/restore/checkout/merge; DB errors → 400/409; package validation; demo controls gated (`ZTDB_DEMO_MODE`, `ZTDB_ADMIN_TOKEN`); `.env`; atomic Mongo swap on restore | `api/app/` |
-| Web | dashboard (12 pages) + auditor portal with in-browser Groth16 verification | `web/` |
+| Hardening | advisory lock around commit/restore/checkout; DB errors → 400/409; package validation; demo controls gated (`ZTDB_DEMO_MODE`, `ZTDB_ADMIN_TOKEN`); `.env`; atomic Mongo swap on restore | `api/app/` |
+| Web | dashboard (11 pages) + auditor portal with in-browser Groth16 verification | `web/` |
 | CLI | `python api/cli.py …` (Typer + rich) | `api/cli.py` |
 | Packaging | Dockerfiles for api / zk-service / web (nginx), compose, GitHub Actions CI, Docker-free Windows scripts | `docker-compose.yml`, `.github/`, `scripts/local/` |
-| Docs | ER diagrams, normalisation, trigger catalogue, Mongo + Neo4j models, merge / SQL console / analytics design | `docs/DATABASE_DESIGN.md` |
+| Docs | ER diagrams, normalisation, trigger catalogue, Mongo + Neo4j models, SQL console / analytics design | `docs/DATABASE_DESIGN.md` |
 
 ## 2. What is LEFT
 
@@ -65,8 +65,7 @@ Start: `scripts\local\start.ps1` (or `docker compose up -d`), open http://localh
 5. **Prove** "txn 100600 status = COMPLETED" (and `amount_paise ≥ 20000000`) → *Open in auditor portal*
    (a different organisation) → verified in the browser. *Try to forge the claim* → FAILED → rejected.
    Prove "status = PENDING" → impossible (no proof can exist).
-6. **Merge** → *Conflict* scenario → Preview → choose ours/theirs per field → Merge → **History** shows the
-   two-parent merge commit.
+6. **History** → the commit graph from Neo4j; click v1 → *new branch from here* → check it out → back to main.
 7. **Fraud rings** → the 4-account ring (₹7.9 lakh in 108 min, each hop just under ₹2 lakh) →
    *Freeze ring accounts* → commit → prove "account … status = FROZEN" for the regulator.
 8. Close: "trust us" → "here's mathematical proof", with privacy.
@@ -105,11 +104,9 @@ The CLI (`python api/cli.py …`) can show the same story in a terminal next to 
 * Trusted setup is single-party local — fine for a demo; production uses a public multi-party ceremony
   (or a transparent system like PLONK/STARKs).
 * Max 8 provable fields per record; extra fields are folded into `~rest` (hashed together, not individually provable).
-* Restore and merge rewrite the whole live DB (fine at this size; production would apply a diff).
+* Restore rewrites the whole live DB (fine at this size; production would apply a diff).
 * Mongo and Postgres are not one distributed transaction. Restore stages MongoDB in a temp collection and swaps it
   in after the Postgres commit; commit writes Mongo first and Postgres is the source of truth (orphans are harmless).
-* Merge is state-based (snapshots), not operation-based: a merged state can violate cross-record invariants
-  (e.g. balances vs. transactions) even when there is no field conflict. Constraint violations abort the merge (409).
 * The SQL consoles' statement checks are basic; the real enforcement is the database roles (`ztdb_reader`
   read-only on snapshots, `ztdb_writer` DML on the bank tables only), READ ONLY transactions and timeouts.
   The live console edits PostgreSQL only — KYC documents in MongoDB are not editable with SQL. Snapshot schemas omit constraints and views.

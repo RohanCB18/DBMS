@@ -17,7 +17,7 @@ const STORY: [string, string, string][] = [
   ["Diff · Lineage · Time travel", "what changed, the history of one record (Neo4j), the past", "/diff"],
   ["Verify → Tamper lab", "an insider edits history — detected and pinpointed", "/tamper"],
   ["Prove → Auditor portal", "prove one fact about txn #100600, reveal nothing else", "/prove"],
-  ["Merge · SQL · Fraud rings", "branches, SELECT on the past, graph analytics", "/merge"],
+  ["SQL console · Fraud rings", "SELECT on the past, graph analytics with Neo4j", "/sql"],
 ];
 
 export default function Overview() {
@@ -199,7 +199,7 @@ export default function Overview() {
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <QuickLink to="/verify" icon={<ShieldCheck className="h-5 w-5" />} title="Verify history" text="4 independent tamper checks" />
         <QuickLink to="/prove" icon={<KeyRound className="h-5 w-5" />} title="Prove a fact" text="Groth16, ~1 s, ~700 bytes" />
-        <QuickLink to="/history" icon={<Layers3 className="h-5 w-5" />} title="Explore the DAG" text="branches and merges from Neo4j" />
+        <QuickLink to="/history" icon={<Layers3 className="h-5 w-5" />} title="Explore the DAG" text="commit history and branches from Neo4j" />
       </div>
     </>
   );

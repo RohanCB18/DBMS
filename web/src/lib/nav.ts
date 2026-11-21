@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Table2, GitBranch, GitCompare, History, Route, ShieldCheck, Skull, KeyRound,
-  GitMerge, Terminal, Network, type LucideIcon,
+  Terminal, Network, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem { to: string; label: string; icon: LucideIcon; end?: boolean; blurb: string }
@@ -17,7 +17,6 @@ export const NAV: NavSection[] = [
     { to: "/diff", label: "Diff", icon: GitCompare, blurb: "record and field changes between commits" },
     { to: "/time-travel", label: "Time travel", icon: History, blurb: "browse or restore any past state" },
     { to: "/lineage", label: "Record lineage", icon: Route, blurb: "every version of one record" },
-    { to: "/merge", label: "Merge", icon: GitMerge, blurb: "three-way merge with conflicts" },
   ] },
   { title: "Integrity", items: [
     { to: "/verify", label: "Verify", icon: ShieldCheck, blurb: "four independent tamper checks" },

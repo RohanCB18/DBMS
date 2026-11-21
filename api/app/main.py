@@ -99,15 +99,6 @@ class RestoreIn(BaseModel):
     move_head: bool = Field(False, description="also move the current branch to this commit (reset --hard)")
 
 
-class MergeIn(BaseModel):
-    source: str = Field(description="branch name or commit to merge into the current branch")
-    resolutions: dict[str, Literal["ours", "theirs"]] | None = Field(
-        None, description='conflict choices: {"<key>" or "<key>|<field>": "ours" | "theirs"}')
-    message: str | None = Field(None, max_length=200)
-    author: str = "demo-user"
-    dry_run: bool = Field(False, description="report the outcome and conflicts without writing")
-
-
 class SqlIn(BaseModel):
     ref: str = Field(description="commit id, prefix or branch name to query 'as of'")
     query: str = Field(min_length=1, max_length=5000)
@@ -144,10 +135,6 @@ class TamperSqlIn(BaseModel):
 
 class FreezeIn(BaseModel):
     account_ids: list[int] = Field(min_length=1, max_length=20)
-
-
-class ScenarioIn(BaseModel):
-    mode: Literal["clean", "conflict"]
 
 
 # ------------------------------------------------------------------ version control
@@ -205,11 +192,6 @@ def checkout(body: CheckoutIn):
 @app.post("/api/restore")
 def restore(body: RestoreIn):
     return vcs.restore(body.ref, body.force, body.move_head)
-
-
-@app.post("/api/merge")
-def merge(body: MergeIn):
-    return vcs.merge(body.source, body.resolutions, body.message, body.author, body.dry_run)
 
 
 @app.post("/api/sql")
@@ -342,11 +324,6 @@ def demo_tamper(body: TamperIn):
 @app.post("/api/demo/tamper-sql", dependencies=[Depends(demo_guard)])
 def demo_tamper_sql(body: TamperSqlIn):
     return JSONResponse(jsonable_encoder(demo.tamper_sql(body.statement)))
-
-
-@app.post("/api/demo/merge-scenario", dependencies=[Depends(demo_guard)])
-def demo_merge_scenario(body: ScenarioIn):
-    return demo.merge_scenario(body.mode)
 
 
 @app.post("/api/demo/freeze", dependencies=[Depends(demo_guard)])

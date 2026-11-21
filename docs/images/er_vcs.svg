@@ -146,7 +146,7 @@
 <text x="1090" y="930" font-size="15" font-weight="bold" text-anchor="middle" fill="#1e3a8a">CHANGE_LOG</text>
 <text x="613.5" y="432.2" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">N</text>
 <text x="593.3" y="367.1" font-size="12" font-style="italic" fill="#1d4ed8" text-anchor="middle">child</text>
-<text x="666.5" y="432.2" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">M</text>
+<text x="666.5" y="432.2" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
 <text x="686.7" y="367.1" font-size="12" font-style="italic" fill="#1d4ed8" text-anchor="middle">parent</text>
 <text x="298.8" y="451.7" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">1</text>
 <text x="559.1" y="429.1" font-size="15" font-weight="bold" fill="#b91c1c" text-anchor="middle">N</text>
@@ -174,6 +174,6 @@
 <text x="86" y="1031" font-size="12.5" fill="#333">Double line = total participation</text>
 <text x="59" y="1055" font-size="14" font-weight="bold" fill="#b91c1c" text-anchor="middle">1 N</text>
 <text x="86" y="1055" font-size="12.5" fill="#333">1 / N / M = cardinality</text>
-<text x="30" y="88" font-size="12.5" fill="#555">PARENT_OF is a recursive relationship on COMMIT (a merge commit has 2 parents). CHANGE_LOG is a stand-alone audit entity.</text>
+<text x="30" y="88" font-size="12.5" fill="#555">PARENT_OF is a recursive 1:N relationship on COMMIT (each commit has one parent; a parent can have several children). CHANGE_LOG is a stand-alone audit entity.</text>
 <text x="30" y="106" font-size="12.5" fill="#555">ANCHOR and VERIFICATION_RUN cannot exist without their COMMIT (weak entities, identifying relationships).</text>
 </svg>

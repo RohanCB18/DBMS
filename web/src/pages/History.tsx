@@ -13,7 +13,7 @@ import { when } from "../lib/format";
 
 const LANE_COLORS = ["#34d399", "#a78bfa", "#38bdf8", "#fbbf24", "#f472b6", "#fb923c"];
 
-type CommitNodeData = GraphData["nodes"][number] & { heads: string[]; color: string; label: string; selected: boolean; isHead: boolean; merge: boolean };
+type CommitNodeData = GraphData["nodes"][number] & { heads: string[]; color: string; label: string; selected: boolean; isHead: boolean };
 
 function CommitNode({ data }: NodeProps<Node<CommitNodeData>>) {
   return (
@@ -34,7 +34,6 @@ function CommitNode({ data }: NodeProps<Node<CommitNodeData>>) {
         </span>
         <span className="font-mono text-[13px] text-amber-200/90">{data.id.slice(0, 10)}</span>
         <span className="text-xs text-slate-500">{data.label}</span>
-        {data.merge && <span className="rounded bg-violet-400/15 px-1.5 text-[11px] text-violet-300">merge</span>}
         <span className="ml-auto flex gap-1">
           {data.heads.map((h) => <span key={h} className="rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-ink-950" style={{ background: data.color }}>{h}</span>)}
         </span>
@@ -63,8 +62,6 @@ export default function HistoryPage() {
     g.nodes.forEach((n) => { if (!lanes.includes(n.branch)) lanes.push(n.branch); });
     const heads: Record<string, string[]> = {};
     g.branches.forEach((b) => { (heads[b.commit] ??= []).push(b.branch); });
-    const parentsOf: Record<string, number> = {};
-    g.edges.forEach((e) => { parentsOf[e.from] = (parentsOf[e.from] ?? 0) + 1; });
     const total = g.nodes.length;
     const nodes: Node<CommitNodeData>[] = g.nodes.map((n, i) => {
       const lane = lanes.indexOf(n.branch);
@@ -72,7 +69,7 @@ export default function HistoryPage() {
       return {
         id: n.id, type: "commit", position: { x: lane * 340, y: (total - 1 - i) * 110 },
         data: { ...n, heads: heads[n.id] ?? [], color, label: labels[n.id] ?? "", selected: n.id === selected,
-          isHead: n.id === status.data?.head, merge: (parentsOf[n.id] ?? 0) > 1 },
+          isHead: n.id === status.data?.head },
       };
     });
     const colorOf = Object.fromEntries(nodes.map((n) => [n.id, n.data.color]));
@@ -87,7 +84,7 @@ export default function HistoryPage() {
   return (
     <>
       <PageHeader title="History" icon={<GitBranch className="h-7 w-7" />}
-        subtitle="The commit DAG, read from Neo4j. Each lane is a branch; merge commits have two parents. Click a commit for details."
+        subtitle="The commit DAG, read from Neo4j. Each lane is a branch; arrows point from a commit to its parent. Click a commit for details."
         actions={<BranchBar />} />
       {graph.error && <ErrorBox error={graph.error} />}
       <div className="relative">

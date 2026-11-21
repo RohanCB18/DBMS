@@ -167,7 +167,7 @@ def fraud_rings(min_amount: int, max_hours: int, limit: int = 10) -> list[dict]:
                WITH p, rels, ids,
                     reduce(lo = rels[0].at, x IN rels | CASE WHEN x.at < lo THEN x.at ELSE lo END) AS first,
                     reduce(hi = rels[0].at, x IN rels | CASE WHEN x.at > hi THEN x.at ELSE hi END) AS last
-               WHERE duration.inSeconds(first, last).hours <= $hours
+               WHERE duration.inSeconds(first, last).seconds <= $hours * 3600   // exact; .hours rounds down
                RETURN ids[0..-1] AS accounts,
                       [n IN nodes(p)[0..-1] | n.owner] AS owners,
                       [n IN nodes(p)[0..-1] | n.status] AS statuses,

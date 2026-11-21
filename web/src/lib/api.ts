@@ -77,12 +77,6 @@ export interface Lineage {
   versions: { blob: string; kind: string; commit_id: string; message: string; created_at: string; proofs: string[] }[];
   deleted_in: { commit_id: string; created_at: string }[];
 }
-export interface Conflict { key: string; field: string | null; base: any; ours: any; theirs: any }
-export interface MergeResult {
-  result: "up-to-date" | "fast-forward" | "merged" | "clean" | "conflicts";
-  branch: string; ours: string; theirs: string; base: string | null; commit_id?: string;
-  conflicts?: Conflict[]; conflicts_resolved?: number; dry_run?: boolean; records_changed_on_ours?: number;
-}
 export interface SqlResult {
   commit_id: string; schema: string; columns: string[]; rows: any[][]; truncated: boolean;
   row_count: number; materialise_ms: number; query_ms: number; tables: string[];
@@ -122,8 +116,6 @@ export const api = {
   createBranch: (name: string, start?: string) => request<Branch>("POST", "/branches", { name, start }),
   checkout: (branch: string, force = false) => request<any>("POST", "/checkout", { branch, force }),
   restore: (ref: string, force = false, move_head = false) => request<any>("POST", "/restore", { ref, force, move_head }),
-  merge: (source: string, resolutions?: Record<string, "ours" | "theirs">, dry_run = false) =>
-    request<MergeResult>("POST", "/merge", { source, resolutions, dry_run }),
   verify: (ref: string) => request<VerifyResult>("POST", `/verify/${ref}`),
   verifyRuns: () => request<VerifyRun[]>("GET", "/verify-runs"),
   anchors: () => request<Anchor[]>("GET", "/anchors"),
@@ -148,7 +140,6 @@ export const api = {
   businessDay: () => request<{ events: string[]; status: Status }>("POST", "/demo/business-day"),
   tamper: (mode: "blob" | "root" | "undo") => request<any>("POST", "/demo/tamper", { mode }),
   tamperSql: (statement: string) => request<{ attack: string; statement: string; affected: number; changed: string[]; hint: string }>("POST", "/demo/tamper-sql", { statement }),
-  scenario: (mode: "clean" | "conflict") => request<any>("POST", "/demo/merge-scenario", { mode }),
   freeze: (account_ids: number[]) => request<any>("POST", "/demo/freeze", { account_ids }),
 };
 

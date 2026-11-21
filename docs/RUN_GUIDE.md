@@ -69,7 +69,7 @@ Make the browser window wide (1280 px or more) — that is the size the layout i
 
 ## Part B — Walk through the project (30–40 minutes)
 
-The left sidebar has 12 pages. Follow the order below: it tells the project's story.
+The left sidebar has 11 pages. Follow the order below: it tells the project's story.
 
 > Buttons that overwrite data (Reset demo, Restore, switching branch, Freeze) first show a browser
 > **confirmation box** — click **OK** to go ahead.
@@ -245,21 +245,18 @@ and a box **"What you learned"** (one fact) vs **"What stayed hidden"**.
 **Click:** **Try to forge the claim** → change `COMPLETED` to `FAILED` → **Verify forged package**.
 **You will see:** **REJECTED** — "mismatch: value". The proof cannot be re-used for a different claim.
 
-### Step 12 — Branches and merging (Merge page + History page)
-**Click:** **Merge** → **Clean merge (different records)**.
-This creates a branch `audit-fix` that fixes customer 7's phone, while `main` moves customer 12 to Pune.
-Now choose **audit-fix** in "merge … into main" → **Preview** → **Merge**.
-→ merged automatically, because different records changed.
+### Step 12 — The commit graph and branches (History page)
+**Click:** **History**. **You will see:** the commit graph read from Neo4j — one card per commit,
+arrows from each commit to its parent, the current HEAD glowing. Click any commit for actions
+(verify, diff, browse snapshot, prove, restore, new branch from here).
 
-**Click:** **Conflict (same fields, PostgreSQL + MongoDB)** → choose **kyc-review** → **Preview**.
-**You will see:** two **conflicts** — customer 7's phone (PostgreSQL) and KYC risk score (MongoDB)
-were changed to *different* values on both sides. Pick **ours** or **theirs** for each → **Merge**.
+**Try:** click **v1** → type `audit-2026q3` under *new branch from here* → **+**. Then click the
+**audit-2026q3** button at the top right → **OK**: the live data is now exactly v1. Click **main** →
+**OK** to switch back.
 
-**Click:** **History**. **You will see:** the commit graph, with lanes for branches and **merge
-commits that have two parents**. Click any commit for actions (verify, diff, prove, restore).
-
-**Behind the scenes:** the merge finds the last common commit of both branches (the "base", using a
-**recursive SQL query**), then compares base / ours / theirs record by record and field by field.
+**Behind the scenes:** a branch is one row in `vcs.branches` pointing at a commit; checking it out
+restores that commit's records into the live tables. History is walked with a **recursive SQL query**
+(`vcs.fn_ancestors`) in PostgreSQL and with `[:PARENT*]` in Neo4j.
 
 ### Step 13 — Catch money launderers (Fraud rings page)
 **Click:** **Fraud rings** → **Search**.
@@ -356,4 +353,3 @@ the SQL files), use `docker compose down -v` instead of `stop` — then click **
 | Dashboard shows network errors | The API is not running — run `start.ps1` again and look at `.local\logs\api.err.log` |
 | "Generate proof" fails | zk-service is not running — check `.local\logs\zk.err.log` |
 | SQL console says permission/role error | Live tab: restart the API (it applies `04_live_sql.sql` at startup). Time-travel tab: the database was created before `03_roles.sql` existed: `docker compose down -v`, `docker compose up -d postgres mongo neo4j`, then **Reset demo** |
-| Merge scenario says "commit or discard the uncommitted changes first" | Go to Overview and **Commit** first |

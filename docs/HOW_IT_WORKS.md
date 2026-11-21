@@ -15,7 +15,7 @@ each idea. To see each idea working, follow [RUN_GUIDE.md](RUN_GUIDE.md) alongsi
 6. Committing: taking a snapshot
 7. Zero-knowledge proofs: proving without showing
 8. Reading history: log, diff, time travel, lineage, SQL console
-9. Branches, restore and merge
+9. Branches and restore
 10. Tamper detection: catching a dishonest insider
 11. Neo4j: the history graph and fraud rings
 12. The dashboard, CLI and tests
@@ -226,7 +226,7 @@ The commit's "table of contents" — every record key, its blob id and its leaf 
 ### Step 6.5 — Record the commit atomically (PostgreSQL stored procedure)
 `vcs.sp_record_commit(...)` does, in **one** transaction (all or nothing):
 1. insert the commit row (id, branch, Merkle root, message, author, time) into `vcs.commits`
-2. insert its parent link(s) into `vcs.commit_parents` (two parents for a merge)
+2. insert its parent link into `vcs.commit_parents`
 3. append an entry to the **anchor log** (step 6.6)
 4. move the branch to point at the new commit
 5. clear the change log
@@ -340,7 +340,7 @@ only the one claim. Showing both side by side explains why ZK matters.
 
 ---
 
-## 9. Branches, restore and merge
+## 9. Branches and restore
 
 * **Branch** — a name pointing to a commit (`vcs.branches`). `main` is the default.
   `vcs.head` stores which branch the live database is currently on.
@@ -349,24 +349,8 @@ only the one claim. Showing both side by side explains why ZK matters.
   because restoring history is allowed to "go backwards".
 * **Checkout** — switch to another branch = restore that branch's latest commit.
 
-### Three-way merge (`api/app/merge.py`)
-Two branches went different ways; we want to combine them.
-
-1. Find the **base** — the last commit both branches share (`vcs.fn_merge_base`, recursive SQL).
-2. For every record, and inside it every field, compare **base**, **ours** (current branch) and
-   **theirs** (the other branch):
-
-| Situation | Result |
-|---|---|
-| ours = theirs | keep it |
-| ours = base (only they changed it) | take **theirs** |
-| theirs = base (only we changed it) | keep **ours** |
-| both changed it differently | **conflict** — you choose ours or theirs |
-
-3. Write the merged data, then make a **merge commit with two parents**.
-
-Example (Merge page): branch `kyc-review` sets customer 7's phone to one number and KYC risk score
-to 95; `main` sets a different phone and risk 3 → two conflicts, one in PostgreSQL and one in MongoDB.
+Every commit records its parent in `vcs.commit_parents`; following those links backwards
+(`vcs.fn_ancestors`, a recursive SQL query) gives the history of a branch.
 
 ---
 
@@ -417,17 +401,17 @@ to a regulator.
 
 ## 12. The dashboard, CLI and tests
 
-* **Web dashboard** (`web/`, React + TypeScript + Tailwind): 12 pages — Overview, Live data,
-  History (commit graph), Diff, Time travel, Record lineage, Verify, Tamper lab, Prove, Merge,
+* **Web dashboard** (`web/`, React + TypeScript + Tailwind): 11 pages — Overview, Live data,
+  History (commit graph), Diff, Time travel, Record lineage, Verify, Tamper lab, Prove,
   SQL console, Fraud rings — plus the **Auditor portal** (`/audit`), which verifies proofs **in the
   browser** with the `snarkjs` library and the public verification key. `web/src/lib/zk.ts`
   re-implements the claim encoding so the browser does not have to trust the server.
 * **CLI** (`api/cli.py`): the same features in a terminal — `status`, `commit -m`, `log`, `diff`,
-  `branch`, `checkout`, `restore`, `merge`, `verify`, `prove`, `audit`, `sql`, `rings`, `stats`.
-* **Tests:** 35 Python unit tests (`api/tests/`), 14 browser-encoding tests (`web/`), the circuit
-  self-test (`zk-service/test/`), and `api/scripts/demo_flow.py` — the full demo with 29 checks.
+  `branch`, `checkout`, `restore`, `verify`, `prove`, `audit`, `sql`, `exec`, `rings`, `stats`.
+* **Tests:** 49 Python unit tests (`api/tests/`), 14 browser-encoding tests (`web/`), the circuit
+  self-test (`zk-service/test/`), and `api/scripts/demo_flow.py` — the full demo with 24 checks.
   GitHub Actions (`.github/workflows/ci.yml`) runs them on every push.
-* **Safety:** commit/restore/merge take a database lock so two can't run at once; demo buttons
+* **Safety:** commit/restore/checkout take a database lock so two can't run at once; demo buttons
   can be switched off or protected with a token (`.env`).
 
 ---
@@ -447,7 +431,7 @@ Read in this order — each file builds on the previous ones.
 | 7 | `circuits/record_claim.circom` | the zero-knowledge circuit (read the comments) |
 | 8 | `zk-service/src/server.js` | `/prove` and `/verify` |
 | 9 | `api/app/proofs.py` | proof packages and the auditor's three checks |
-| 10 | `api/app/merge.py`, `sqlconsole.py`, `analytics.py`, `anchoring.py` | the advanced features |
+| 10 | `api/app/sqlconsole.py`, `livesql.py`, `analytics.py`, `anchoring.py` | the advanced features |
 | 11 | `api/app/demo.py` | seed data, business day, attacks |
 | 12 | `api/app/main.py` | the list of API routes (the "menu") |
 | 13 | `web/src/pages/*.tsx` | one file per dashboard page; `web/src/lib/zk.ts` for in-browser checking |
@@ -467,7 +451,7 @@ Read in this order — each file builds on the previous ones.
 | Stored procedures / functions | `sp_transfer`, `sp_settle_txn`, `sp_reverse_txn`, `sp_record_commit` |
 | ACID transactions, row locking (`FOR UPDATE`), deadlock avoidance | `sp_settle_txn`, commit procedure |
 | Views | `bank.v_account_summary`, `vcs.v_commit_log` |
-| Recursive CTEs | `fn_ancestors` (log), `fn_merge_base` (merge) |
+| Recursive CTEs | `fn_ancestors` (commit history / log) |
 | Window functions | `LAG` in `fn_verify_anchor_chain` |
 | Roles & privileges (least privilege) | `ztdb_reader` in `03_roles.sql` |
 | NoSQL documents, nested data, content addressing | KYC documents; `blobs` / `trees` / `proofs` |
@@ -498,5 +482,5 @@ the *entire* anchor chain needs external anchoring (publishing the anchor hashes
 * Our trusted setup was done by one person on one laptop — fine for a demo; real systems run a
   public ceremony with many participants, or use setup-free proof systems (PLONK, STARKs).
 * At most 8 provable fields per record; extra fields are bundled together.
-* Restore and merge rewrite the whole live database — fine at this size.
+* Restore rewrites the whole live database — fine at this size.
 * MongoDB and PostgreSQL writes are not one single transaction; PostgreSQL is the source of truth.

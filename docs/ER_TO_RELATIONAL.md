@@ -56,7 +56,7 @@ Source DDL: [`db/postgres/01_bank_schema.sql`](../db/postgres/01_bank_schema.sql
 | MADE_ON | VERSION_BRANCH – COMMIT | 1 : N | COMMIT total | the branch a commit was made on |
 | HEAD_OF | VERSION_BRANCH – COMMIT | N : 1 | both partial | a branch points at its latest commit (empty for a brand-new branch) |
 | CHECKED_OUT | WORKSPACE – VERSION_BRANCH | 1 : 1 | WORKSPACE total | the branch currently loaded into the live tables |
-| PARENT_OF | COMMIT (child) – COMMIT (parent) | M : N, **recursive** | partial | commit history; a merge commit has two parents. Attribute: `parent_order` |
+| PARENT_OF | COMMIT (parent) – COMMIT (child) | 1 : N, **recursive** | partial | commit history: every commit except the first has exactly one parent; a parent can have several children when branches split. Attribute: `parent_order` |
 | ANCHORED | COMMIT – ANCHOR | 1 : 1, **identifying** | ANCHOR total | each commit's root is recorded once in the hash chain |
 | VERIFIED | COMMIT – VERIFICATION_RUN | 1 : N, **identifying** | VERIFICATION_RUN total | integrity checks performed on a commit |
 | CACHED_AS | COMMIT – SNAPSHOT_SCHEMA | 1 : 1 | SNAPSHOT_SCHEMA total | a commit materialised as a schema for the SQL console |
@@ -112,24 +112,24 @@ Foreign keys are added in steps 3–5.
 | RECEIVES (ACCOUNT 1:N TRANSACTION) | `transactions.to_account FK → accounts(account_id) NOT NULL` (two foreign keys to the same table, distinguished by role) + `CHECK (from_account <> to_account)` |
 | MADE_ON (VERSION_BRANCH 1:N COMMIT) | `commits.branch_name FK → branches(branch_name) NOT NULL` |
 | HEAD_OF (VERSION_BRANCH N:1 COMMIT) | `branches.head_commit FK → commits(commit_id)`, **nullable** (partial participation: a new branch has no commit yet) |
+| PARENT_OF (recursive COMMIT 1:N COMMIT, attribute `parent_order`) | mapped with the **relationship-relation option** instead of a foreign-key column: `commit_parents(`**`commit_id`** `FK → commits,` **`parent_order`**`, parent_id FK → commits)` (see the notes below) |
 | VERIFIED | already handled in step 2 |
+
+Design notes on PARENT_OF:
+- The standard step-4 choice would be a nullable column `commits.parent_id`. The algorithm also allows mapping a 1:N relationship to a **separate relation**, which is preferred when the foreign key would often be NULL or when the relationship has its own attributes. Both apply here: the first commit has no parent, and the relationship carries `parent_order`. Keeping parent links in their own table also means `commits` rows are written once and never touched again (they are immutable, enforced by a trigger).
+- Both foreign keys reference the **same** table (`commits`): one for the *child* role, one for the *parent* role. `CHECK (commit_id <> parent_id)` forbids a commit being its own parent.
+- The primary key is `(commit_id, parent_order)`. Every commit currently has one parent (`parent_order = 1`). `CHECK (parent_order IN (1, 2))` is left in the schema, so a second parent could be recorded later without a schema change.
 
 ### Step 5: Map binary M:N relationship types
 *Rule:* create a new relation whose attributes are the primary keys of both participants (as foreign keys) plus the relationship's own attributes. The primary key is usually the combination of the foreign keys.
 
-| Relationship | Relation produced |
-|---|---|
-| PARENT_OF (recursive COMMIT M:N COMMIT, attribute `parent_order`) | `commit_parents(`**`commit_id`** `FK → commits,` **`parent_order`**`, parent_id FK → commits)` |
-
-Design notes:
-- Both foreign keys reference the **same** table (`commits`): one for the *child* role, one for the *parent* role.
-- The primary key is `(commit_id, parent_order)` rather than `(commit_id, parent_id)`, because the order matters (parent 1 = the branch merged into, parent 2 = the branch merged from). `CHECK (parent_order IN (1, 2))` limits a commit to at most two parents, and `CHECK (commit_id <> parent_id)` forbids a commit being its own parent.
+**There are no M:N relationships.** Every relationship in the model is 1:1 or 1:N.
 
 ### Step 6: Map multivalued attributes
 *Rule:* for each multivalued attribute A of entity E, create a relation with A plus E's primary key. The primary key is the combination.
 
 **There are no multivalued attributes in the final ER model.** Two candidates were considered:
-- *A commit's list of parents* could have been modelled as a multivalued attribute `parents{}`. Each parent is itself a COMMIT, so it was modelled as the recursive relationship PARENT_OF instead (step 5). It produces the same kind of relation, `commit_parents`.
+- *A commit's parent* could have been stored as an attribute of COMMIT. The parent is itself a COMMIT, so it was modelled as the recursive relationship PARENT_OF instead (step 4).
 - *A customer's KYC document* (with a nested address) is semi-structured and lives in **MongoDB**, outside the relational schema (see section 6).
 
 The JSONB columns `change_log.old_row/new_row` and `verification_runs.details` store complete, read-only snapshots as single values. They are never queried or updated element by element, so they are treated as atomic values (see the 1NF discussion in section 4).
@@ -149,7 +149,7 @@ The JSONB columns `change_log.old_row/new_row` and `verification_runs.details` s
 | 5 | commits | 1, 4 |
 | 6 | branches | 1, 4 |
 | 7 | head | 1, 3 |
-| 8 | commit_parents | 5 |
+| 8 | commit_parents | 4 (relationship-relation option) |
 | 9 | anchors | 2 |
 | 10 | verification_runs | 2 |
 | 11 | snapshot_schemas | 1, 3 |
@@ -347,7 +347,7 @@ change_log        ( change_id     BIGSERIAL    PRIMARY KEY,
 | `trg_anchor_chain` | trigger | computes `prev_hash` and `entry_hash` (SHA-256 chain) |
 | `bank.sp_transfer`, `sp_settle_txn`, `sp_reverse_txn` | stored functions | the only way money moves (atomic, with row locks) |
 | `vcs.sp_record_commit` | stored procedure | inserts commit + parents + anchor and moves the branch, in one transaction |
-| `vcs.fn_ancestors`, `vcs.fn_merge_base` | functions (recursive CTEs) | commit history, and the merge base of two branches |
+| `vcs.fn_ancestors` | function (recursive CTE) | commit history: all ancestors of a commit |
 | `vcs.fn_verify_anchor_chain` | function (window function `LAG`) | re-checks every link of the hash chain |
 | `bank.v_account_summary`, `vcs.v_commit_log` | views | reporting |
 | `ztdb_reader` | role | read-only user for the time-travel SQL console |
@@ -472,7 +472,7 @@ COMMIT_LOG ( commit_id, message, author, created_at, merkle_root, record_count,
 ```
 | Form | Problem | Fix |
 |---|---|---|
-| **1NF** | `{parent_id}` (a merge has two) and `{verification run}` are repeating groups | move parents to `commit_parents(commit_id, parent_order, parent_id)`; runs to `verification_runs(run_id, commit_id, ok, details, ran_at)` |
+| **1NF** | `{verification run}` is a repeating group (a commit can be verified many times) | move runs to `verification_runs(run_id, commit_id, ok, details, ran_at)`; the parent link goes to `commit_parents(commit_id, parent_order, parent_id)`, so the first commit needs no NULL parent |
 | **2NF** | in `commit_parents`, key = (commit_id, parent_order) and `parent_id` depends on the whole key ✓. Storing the parent's message there would be a partial dependency on `parent_id`, so it is not stored. | none needed |
 | **3NF** | `commit_id → branch_name → branch_head_commit` is transitive (the head belongs to the branch, not to the commit) | move it to `branches(branch_name, head_commit)` |
 | **3NF** | `commit_id → anchor_seq → prev_hash, entry_hash, anchored_at` | move it to `anchors(seq, commit_id, merkle_root, prev_hash, entry_hash, anchored_at)` |

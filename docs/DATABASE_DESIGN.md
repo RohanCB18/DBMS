@@ -135,8 +135,8 @@ Functional dependencies:
 | email → customer_id | email is a candidate key |
 | branch_code → branch_name, city, ifsc ; ifsc → branch_code | a branch |
 
-* **1NF** — every attribute is atomic. A commit with two parents (merge) is *not* stored as a
-  `parents` array column but as rows in `vcs.commit_parents` (repeating group removed).
+* **1NF** — every attribute is atomic. A commit's parent link is *not* stored as a `parents`
+  array column but as a row in `vcs.commit_parents`.
 * **2NF** — all relations have single-column keys except `commit_parents`, whose non-key
   attribute `parent_id` depends on the whole key `(commit_id, parent_order)`.
 * **3NF** — the transitive dependencies `txn_id → from_account → customer_id → full_name`
@@ -163,7 +163,6 @@ Deliberate, justified redundancy:
 | `trg_anchor_chain` | BEFORE INSERT trigger | computes `prev_hash` and `entry_hash = sha256(prev ‖ commit ‖ root ‖ time)` with pgcrypto |
 | `vcs.sp_record_commit` | stored PROCEDURE | one atomic unit: commit row + parent edges + anchor + branch head + clear change log |
 | `vcs.fn_ancestors` | recursive CTE | `git log` — walk the commit DAG |
-| `vcs.fn_merge_base` | recursive CTE | lowest common ancestor for three-way merge |
 | `vcs.fn_verify_anchor_chain` | window function (`LAG`) | re-walk the hash chain and report broken links |
 | `bank.v_account_summary`, `vcs.v_commit_log` | views | reporting |
 | `ztdb.restoring` session setting | custom GUC | lets `restore` bypass audit + state-machine triggers inside its own transaction only |
@@ -200,7 +199,7 @@ a commit after a business day stores ~50 new blobs, not 750.
 
 ```
 (:Branch {name})-[:HEAD]->(:Commit {id, root, message, author, created_at, added, modified, deleted})
-(:Commit)-[:PARENT]->(:Commit)                         // the DAG; merges have two
+(:Commit)-[:PARENT]->(:Commit)                         // the commit history (each commit -> its parent)
 (:Record {key, table, pk})-[:HAS_VERSION]->(:Version {id: blob sha256})
 (:Version)-[:INTRODUCED_IN {kind: added|modified}]->(:Commit)
 (:Version)-[:PREVIOUS]->(:Version)
@@ -237,25 +236,14 @@ truth: if it fails, the Mongo documents are unreferenced orphans (harmless); if 
 commit still succeeds and reports `graph_synced: false`.
 
 
-## 7. Branching and three-way merge
+## 7. Branches
 
-`vcs.commit_parents` already models a DAG (`parent_order` 1 or 2), and `vcs.fn_merge_base` finds the
-lowest common ancestor with two recursive CTEs (`fn_ancestors` of both heads, joined, ordered by
-combined depth). `api/app/merge.py` then merges three *snapshots* (`{record_key: {column: value}}`):
-
-| base | ours | theirs | result |
-|---|---|---|---|
-| x | x | y | y (only they changed it) |
-| x | y | x | y (only we changed it) |
-| x | y | y | y (same change) |
-| x | y | z | **conflict** (resolved per `key|field` as ours / theirs) |
-| x | deleted | y | **record conflict** (delete vs modify) |
-
-Records changed on both sides are merged field by field, so two people editing *different columns*
-of the same row merge cleanly. The merged state is written through the same path as restore
+A branch is a row in `vcs.branches` pointing at its latest commit, and `vcs.head` records which branch
+is loaded into the live tables. Each commit stores its parent in `vcs.commit_parents`, so the commits
+form a tree; `vcs.fn_ancestors` walks it with a recursive CTE (`git log`). Checking out a branch
+restores its head commit into the live tables through the restore path
 (`SET LOCAL ztdb.restoring = 'on'` bypasses the transaction state-machine trigger — history is
-authoritative) and committed with two parents; Neo4j draws both `:PARENT` edges. If `base == ours`
-the branch is fast-forwarded instead (no merge commit).
+authoritative). Branches are independent timelines; they are not merged back together.
 
 ## 8. Time-travel SQL console
 
@@ -304,7 +292,7 @@ a regulator a ZK proof that "account X was FROZEN at commit C" without revealing
 
 ## 10. Concurrency and tamper-evidence beyond the database
 
-* **Advisory lock.** Commit, restore, checkout and merge rewrite whole tables, so they are serialised with
+* **Advisory lock.** Commit, restore and checkout rewrite whole tables, so they are serialised with
   `pg_advisory_lock(72026101)` held on a dedicated connection (re-entrant per thread). This protects against
   the web UI and the CLI acting at the same time; a second caller waits up to 15 s, then gets HTTP 409.
 * **External anchoring.** The anchor hash chain detects editing one commit, but a DBA could recompute the

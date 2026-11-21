@@ -4,7 +4,7 @@ from .db import pg
 from .vcs import VcsError, head, resolve, snapshot_by_table
 
 RING_QUERY = ("MATCH p = (a:Account) (()-[r:SENT WHERE r.amount >= $min AND r.status = 'COMPLETED']->()){3,5} (a) "
-              "... WHERE duration.inSeconds(first, last).hours <= $hours")
+              "... WHERE duration.inSeconds(first, last).seconds <= $hours * 3600")
 
 
 def _resolve(ref: str) -> str:
