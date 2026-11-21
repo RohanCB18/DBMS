@@ -15,6 +15,13 @@ export default function FraudRings() {
   const [hours, setHours] = useState(24);
   const [args, setArgs] = useState({ ref: "HEAD", minInr: 100000, hours: 24 });
   const q = useQuery({ queryKey: ["rings", args], queryFn: () => api.rings(args.ref, args.minInr, args.hours) });
+  // Same settings -> same query key, which would not re-run; refetch explicitly so Search always
+  // searches again (and picks up a commit made since the last search).
+  const search = () => {
+    const next = { ref, minInr, hours };
+    if (next.ref === args.ref && next.minInr === args.minInr && next.hours === args.hours) q.refetch();
+    else setArgs(next);
+  };
   const freeze = useAction((ids: number[]) => api.freeze(ids), (r) => `Frozen: ${r.frozen.join(", ") || "already frozen"} — commit to record it`);
 
   return (
@@ -33,13 +40,20 @@ export default function FraudRings() {
           </label>
           <Field label="min. per hop (₹)"><input type="number" className={inputCls} value={minInr} onChange={(e) => setMinInr(Number(e.target.value))} /></Field>
           <Field label="within (hours)"><input type="number" className={inputCls} value={hours} onChange={(e) => setHours(Number(e.target.value))} /></Field>
-          <Button variant="primary" disabled={!ref} onClick={() => setArgs({ ref, minInr, hours })}><Search className="h-4 w-4" /> Search</Button>
+          <Button variant="primary" disabled={!ref} busy={q.isFetching} onClick={search}>{!q.isFetching && <Search className="h-4 w-4" />} Search</Button>
         </div>
         <pre className="mt-4 overflow-x-auto rounded-xl bg-ink-950 p-3 font-mono text-[13px] text-violet-200">
 {`MATCH p = (a:Account) (()-[r:SENT WHERE r.amount >= $min AND r.status = 'COMPLETED']->()){3,5} (a)
 // quantified path pattern: only large COMPLETED transfers are expanded, 3-5 hops back to the start,
 // first and last transfer at most $hours apart`}
         </pre>
+        {q.data && (
+          <p className="mt-3 text-sm text-slate-500">
+            Last searched commit <span className="font-mono text-slate-300">{q.data.commit_id.slice(0, 10)}</span>
+            {" "}at {new Date(q.dataUpdatedAt).toLocaleTimeString("en-IN")} · {q.data.rings.length} ring{q.data.rings.length === 1 ? "" : "s"} found
+            {" "}(≥ ₹{args.minInr.toLocaleString("en-IN")} per hop, within {args.hours} h)
+          </p>
+        )}
       </Card>
 
       <div className="mt-5 space-y-5">
