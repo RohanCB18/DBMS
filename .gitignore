@@ -11,3 +11,6 @@ circuits/build/
 # portable local databases (scripts/local/*.ps1)
 .local/
 *.tsbuildinfo
+
+# locally generated paper drafts (not for GitHub)
+paper/ieee_v2/
