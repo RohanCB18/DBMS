@@ -12,5 +12,8 @@ circuits/build/
 .local/
 *.tsbuildinfo
 
-# locally generated paper drafts (not for GitHub)
-paper/ieee_v2/
+# local working folders (not for GitHub)
+output/
+paper/
+schema_work/
+tmp/
